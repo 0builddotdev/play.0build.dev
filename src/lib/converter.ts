@@ -80,6 +80,33 @@ const INTENSITY_SET = new Set<number>(INTENSITIES);
 const PSEUDO_CLASS_SET = new Set<string>(PSEUDO_CLASSES.map((p) => p.slice(1)));
 const PSEUDO_ELEMENT_SET = new Set<string>(PSEUDO_ELEMENTS.map((p) => p.slice(2)));
 
+// Named single-word colors supported across color and /o utilities
+const NAMED_COLORS = new Set<string>(['white', 'black', 'transparent', 'current', 'inherit']);
+
+// Tailwind v4 gradient color interpolation modifiers -> 0build underscored syntax
+const GRADIENT_INTERPOLATION_MAP: Record<string, string> = {
+	srgb: 'in_srgb',
+	hsl: 'in_hsl',
+	oklab: 'in_oklab',
+	oklch: 'in_oklch',
+	longer: 'in_oklch_longer_hue',
+	shorter: 'in_oklch_shorter_hue',
+	increasing: 'in_oklch_increasing_hue',
+	decreasing: 'in_oklch_decreasing_hue'
+};
+
+// Linear gradient direction shorthands -> CSS direction words (underscored)
+const LINEAR_DIRECTION_CSS_MAP: Record<string, string> = {
+	t: 'to_top',
+	tr: 'to_top_right',
+	r: 'to_right',
+	br: 'to_bottom_right',
+	b: 'to_bottom',
+	bl: 'to_bottom_left',
+	l: 'to_left',
+	tl: 'to_top_left'
+};
+
 // Properties that use calc(var(--spacing) * var(--prop)) for numeric scales and [prop]=val for arbitrary values
 const SCALED_PROPERTIES = new Set([
 	'm',
@@ -718,15 +745,320 @@ function format0buildToken(opts: {
 	return `${darkPrefix}${bpPrefix}${opts.base}${pseudoCls}${pseudoEl}${valPart}`;
 }
 
+interface CoreTokenSpec {
+	base: string;
+	value?: string;
+}
+
 interface CoreMatch {
 	ok: true;
 	base: string;
 	value?: string;
+	tokens?: CoreTokenSpec[];
 }
 
 interface CoreFail {
 	ok: false;
 	reason: string;
+}
+
+/**
+ * Normalizes a Tailwind opacity modifier or value (e.g. `50`, `50%`, `0.5`, `.5`, `[0.5]`, `[50%]`)
+ * into a percentage string with a `%` suffix (e.g. `50%`) required by 0build's `/o` color-mix rules.
+ *
+ * Rules:
+ * - Explicit `%` (e.g. `50%`, `[25%]`, `0.5%`): treated directly as percentage.
+ * - Bare numbers `<= 1` (e.g. `0.5`, `.5`, `[0.5]`, `0`, `1`): treated as decimal opacity and multiplied by 100 (`0.5` -> `50%`).
+ * - Bare numbers `> 1` (e.g. `50`, `75`, `2.5`, `100`): treated directly as percentage (`50` -> `50%`).
+ */
+function normalizeOpacityToPercent(
+	rawOpacity: string
+): { ok: true; value: string } | { ok: false; reason: string } {
+	const trimmed = rawOpacity.trim();
+	const unbracketed =
+		trimmed.startsWith('[') && trimmed.endsWith(']') ? trimmed.slice(1, -1).trim() : trimmed;
+
+	const match = unbracketed.match(/^(-?(?:\d+(?:\.\d+)?|\.\d+))(%?)$/);
+	if (!match) {
+		return {
+			ok: false,
+			reason: `Invalid opacity modifier "/${rawOpacity}" (expected percentage or decimal like /50, /50%, or /0.5)`
+		};
+	}
+
+	const [, numStr, pctSign] = match;
+	const num = Number(numStr);
+	if (Number.isNaN(num)) {
+		return {
+			ok: false,
+			reason: `Invalid opacity value "${rawOpacity}"`
+		};
+	}
+
+	let pct: number;
+	if (pctSign === '%') {
+		pct = num;
+	} else if (num >= 0 && num <= 1) {
+		pct = Number((num * 100).toFixed(4));
+	} else {
+		pct = num;
+	}
+
+	if (pct < 0 || pct > 100) {
+		return {
+			ok: false,
+			reason: `Opacity value "${rawOpacity}" must resolve between 0% and 100%`
+		};
+	}
+
+	return { ok: true, value: `${pct}%` };
+}
+
+/**
+ * Resolves a Tailwind v4 gradient color interpolation modifier (after `/`) into 0build's underscored syntax.
+ */
+function resolveGradientInterpolation(
+	rawInterp?: string
+): { ok: true; value: string } | { ok: false; reason: string } {
+	if (!rawInterp) {
+		return { ok: true, value: 'in_oklab' };
+	}
+
+	if (rawInterp.startsWith('[') && rawInterp.endsWith(']')) {
+		const inner = rawInterp.slice(1, -1).trim();
+		if (!inner) {
+			return { ok: false, reason: 'Empty arbitrary gradient interpolation modifier' };
+		}
+		return { ok: true, value: inner };
+	}
+
+	if (rawInterp in GRADIENT_INTERPOLATION_MAP) {
+		return { ok: true, value: GRADIENT_INTERPOLATION_MAP[rawInterp] };
+	}
+
+	return {
+		ok: false,
+		reason: `Unsupported gradient interpolation modifier "/${rawInterp}"`
+	};
+}
+
+/**
+ * Checks whether an arbitrary value in `from-[...]`, `via-[...]`, or `to-[...]` is a gradient stop position
+ * rather than a color.
+ */
+function isGradientStopPositionValue(rawVal: string): boolean {
+	return (
+		/^-?(?:\d+(?:\.\d+)?|\.\d+)(%|px|rem|em|vh|vw|dvh|dvw|svh|svw|lvh|lvw|ch|ex|cm|mm|in|pt|pc)$/.test(
+			rawVal
+		) || rawVal.startsWith('calc(')
+	);
+}
+
+/**
+ * Converts Tailwind gradient utilities (`bg-linear-*`, `bg-gradient-*`, `bg-radial*`, `bg-conic*`,
+ * and stop positions `from-40%`, `via-50%`, `to-75%`).
+ * Returns `null` if `core` is not a gradient utility.
+ */
+function convertGradientUtility(core: string): CoreMatch | CoreFail | null {
+	// 1. Directional linear gradients: `bg-linear-to-r`, `bg-linear-to-bl`, `bg-gradient-to-r`, optional `/modifier`
+	const linearDirMatch = core.match(
+		/^bg-(?:linear|gradient)-to-(t|tr|r|br|b|bl|l|tl)(?:\/(.+))?$/
+	);
+	if (linearDirMatch) {
+		const [, dir, rawInterp] = linearDirMatch;
+		if (!rawInterp) {
+			return {
+				ok: true,
+				base: 'linear',
+				tokens: [{ base: 'linear' }, { base: `linear-to-${dir}` }]
+			};
+		}
+		const interpRes = resolveGradientInterpolation(rawInterp);
+		if (!interpRes.ok) return interpRes;
+		return {
+			ok: true,
+			base: 'linear',
+			value: `${LINEAR_DIRECTION_CSS_MAP[dir]}_${interpRes.value}`
+		};
+	}
+
+	// 2. Angled linear gradients: `bg-linear-65`, `-bg-linear-65`, `bg-linear-65/decreasing`
+	const linearAngleMatch = core.match(/^(-?)bg-linear-(\d+(?:\.\d+)?)(?:\/(.+))?$/);
+	if (linearAngleMatch) {
+		const [, neg, angle, rawInterp] = linearAngleMatch;
+		const interpRes = resolveGradientInterpolation(rawInterp);
+		if (!interpRes.ok) return interpRes;
+		return {
+			ok: true,
+			base: 'linear',
+			value: `${neg}${angle}deg_${interpRes.value}`
+		};
+	}
+
+	// 3. Arbitrary linear gradients: `bg-linear-[...]`
+	const linearArbMatch = core.match(/^bg-linear-\[([^\]]+)\](?:\/(.+))?$/);
+	if (linearArbMatch) {
+		const [, rawVal, rawInterp] = linearArbMatch;
+		if (rawVal.trim() === '') {
+			return { ok: false, reason: 'Empty arbitrary linear gradient value' };
+		}
+		if (!rawInterp) {
+			return { ok: true, base: 'linear', value: rawVal };
+		}
+		const interpRes = resolveGradientInterpolation(rawInterp);
+		if (!interpRes.ok) return interpRes;
+		return { ok: true, base: 'linear', value: `${rawVal}_${interpRes.value}` };
+	}
+
+	// 4. Radial gradients (bare or with interpolation): `bg-radial`, `bg-radial/decreasing`
+	const radialBareMatch = core.match(/^bg-radial(?:\/(.+))?$/);
+	if (radialBareMatch) {
+		const [, rawInterp] = radialBareMatch;
+		if (!rawInterp) {
+			return { ok: true, base: 'radial' };
+		}
+		const interpRes = resolveGradientInterpolation(rawInterp);
+		if (!interpRes.ok) return interpRes;
+		return { ok: true, base: 'radial', value: interpRes.value };
+	}
+
+	// 5. Arbitrary radial gradients: `bg-radial-[at_50%_75%]`, `bg-radial-[at_25%_25%]/decreasing`
+	const radialArbMatch = core.match(/^bg-radial-\[([^\]]+)\](?:\/(.+))?$/);
+	if (radialArbMatch) {
+		const [, rawVal, rawInterp] = radialArbMatch;
+		if (rawVal.trim() === '') {
+			return { ok: false, reason: 'Empty arbitrary radial gradient value' };
+		}
+		if (!rawInterp) {
+			return { ok: true, base: 'radial', value: rawVal };
+		}
+		const interpRes = resolveGradientInterpolation(rawInterp);
+		if (!interpRes.ok) return interpRes;
+		return { ok: true, base: 'radial', value: `${rawVal}_${interpRes.value}` };
+	}
+
+	// 6. Conic gradients (bare or with interpolation): `bg-conic`, `bg-conic/decreasing`
+	const conicBareMatch = core.match(/^bg-conic(?:\/(.+))?$/);
+	if (conicBareMatch) {
+		const [, rawInterp] = conicBareMatch;
+		if (!rawInterp) {
+			return { ok: true, base: 'conic' };
+		}
+		const interpRes = resolveGradientInterpolation(rawInterp);
+		if (!interpRes.ok) return interpRes;
+		return { ok: true, base: 'conic', value: interpRes.value };
+	}
+
+	// 7. Angled conic gradients: `bg-conic-180`, `-bg-conic-90`, `bg-conic-180/decreasing`
+	const conicAngleMatch = core.match(/^(-?)bg-conic-(\d+(?:\.\d+)?)(?:\/(.+))?$/);
+	if (conicAngleMatch) {
+		const [, neg, angle, rawInterp] = conicAngleMatch;
+		const interpRes = resolveGradientInterpolation(rawInterp);
+		if (!interpRes.ok) return interpRes;
+		return {
+			ok: true,
+			base: 'conic',
+			value: `from_${neg}${angle}deg_${interpRes.value}`
+		};
+	}
+
+	// 8. Arbitrary conic gradients: `bg-conic-[...]`
+	const conicArbMatch = core.match(/^bg-conic-\[([^\]]+)\](?:\/(.+))?$/);
+	if (conicArbMatch) {
+		const [, rawVal, rawInterp] = conicArbMatch;
+		if (rawVal.trim() === '') {
+			return { ok: false, reason: 'Empty arbitrary conic gradient value' };
+		}
+		if (!rawInterp) {
+			return { ok: true, base: 'conic', value: rawVal };
+		}
+		const interpRes = resolveGradientInterpolation(rawInterp);
+		if (!interpRes.ok) return interpRes;
+		return { ok: true, base: 'conic', value: `${rawVal}_${interpRes.value}` };
+	}
+
+	// 9. Gradient stop positions: `from-40%` -> `from-position=40%`, `via-50%` -> `via-position=50%`, `to-75%` -> `to-position=75%`
+	const stopPosMatch = core.match(/^(from|via|to)-(\d+(?:\.\d+)?%)$/);
+	if (stopPosMatch) {
+		const [, stop, pct] = stopPosMatch;
+		return {
+			ok: true,
+			base: `${stop}-position`,
+			value: pct
+		};
+	}
+
+	return null;
+}
+
+/**
+ * Converts Tailwind color utilities (including palette colors, named single-word colors, and `/opacity` modifiers).
+ * Examples:
+ * - `bg-pink-500` -> `bg=pink-500`
+ * - `bg-pink-500/50` -> `bg/o=pink-500/50%`
+ * - `bg-pink-500/0.5` -> `bg/o=pink-500/50%`
+ * - `from-white` -> `from=white`
+ * - `border-pink-500/50%` -> `border/o=pink-500/50%`
+ * Returns `null` if `core` is not a color utility.
+ */
+function convertColorUtility(core: string): CoreMatch | CoreFail | null {
+	const colorMatch = core.match(
+		/^(text|bg|border(?:-[trblsexy])?|outline|ring|inset-ring|shadow|decoration|accent|caret|fill|stroke|from|via|to)-([a-z]+)(?:-(\d+))?(?:\/(.+))?$/
+	);
+	if (!colorMatch) {
+		return null;
+	}
+
+	const [, prefix, colorName, intensityStr, opacityRaw] = colorMatch;
+	const targetBase = COLOR_PREFIX_MAP[prefix];
+
+	let resolvedColor: string;
+
+	if (intensityStr !== undefined) {
+		if (!COLOR_SET.has(colorName)) {
+			return {
+				ok: false,
+				reason: `Color "${colorName}" is not in the supported 0build color list`
+			};
+		}
+		const intensityNum = Number(intensityStr);
+		if (!INTENSITY_SET.has(intensityNum)) {
+			return {
+				ok: false,
+				reason: `Color intensity "${intensityStr}" is not supported (must be 50–950)`
+			};
+		}
+		resolvedColor = `${colorName}-${intensityNum}`;
+	} else if (NAMED_COLORS.has(colorName)) {
+		resolvedColor = colorName;
+	} else if (COLOR_SET.has(colorName)) {
+		return {
+			ok: false,
+			reason: `Color "${colorName}" must include a supported intensity shade (50–950, e.g. ${colorName}-500)`
+		};
+	} else {
+		// Not a recognized color token (e.g. `bg-cover`, `border-collapse`)
+		return null;
+	}
+
+	if (opacityRaw === undefined) {
+		return {
+			ok: true,
+			base: targetBase,
+			value: resolvedColor
+		};
+	}
+
+	const opacityRes = normalizeOpacityToPercent(opacityRaw);
+	if (!opacityRes.ok) {
+		return opacityRes;
+	}
+
+	return {
+		ok: true,
+		base: `${targetBase}/o`,
+		value: `${resolvedColor}/${opacityRes.value}`
+	};
 }
 
 function convertCoreUtility(core: string): CoreMatch | CoreFail {
@@ -748,14 +1080,68 @@ function convertCoreUtility(core: string): CoreMatch | CoreFail {
 		return { ok: true, base: 'shrink-1' };
 	}
 
-	// 4. Arbitrary value utilities: e.g. `m-[1px]`, `-mt-[4px]`, `bg-[#ff0000]`, `text-[14px]`, `w-[200px]`
-	const arbitraryMatch = core.match(/^(-?)([a-zA-Z0-9-]+)-\[([^\]]+)\]$/);
+	// 4. Gradient utilities (`bg-linear-*`, `bg-radial*`, `bg-conic*`, `from-40%`, `to-75%`, etc.)
+	const gradientResult = convertGradientUtility(core);
+	if (gradientResult !== null) {
+		return gradientResult;
+	}
+
+	// 5. Arbitrary value utilities: e.g. `m-[1px]`, `-mt-[4px]`, `bg-[#ff0000]`, `bg-[#ff0000]/50`, `text-[14px]`, `w-[200px]`
+	const arbitraryMatch = core.match(/^(-?)([a-zA-Z0-9-]+)-\[([^\]]+)\](?:\/(.+))?$/);
 	if (arbitraryMatch) {
-		const [, neg, prop, rawVal] = arbitraryMatch;
+		const [, neg, prop, rawVal, opacityRaw] = arbitraryMatch;
 		if (rawVal.trim() === '') {
 			return { ok: false, reason: 'Empty arbitrary value' };
 		}
 		const value = neg ? `-${rawVal}` : rawVal;
+
+		// Gradient stop arbitrary positions: `from-[40%]`, `via-[50%]`, `to-[75%]`
+		if (!neg && !opacityRaw && (prop === 'from' || prop === 'via' || prop === 'to')) {
+			if (isGradientStopPositionValue(rawVal)) {
+				return { ok: true, base: `${prop}-position`, value: rawVal };
+			}
+		}
+
+		// Handle arbitrary colors with optional `/opacity` modifier
+		const isArbitraryColorValue =
+			rawVal.startsWith('#') ||
+			rawVal.startsWith('rgb') ||
+			rawVal.startsWith('hsl') ||
+			rawVal.startsWith('oklch') ||
+			rawVal.startsWith('oklab') ||
+			rawVal.startsWith('var(--color');
+
+		if (prop === 'text') {
+			if (isArbitraryColorValue) {
+				if (opacityRaw !== undefined) {
+					const opRes = normalizeOpacityToPercent(opacityRaw);
+					if (!opRes.ok) return opRes;
+					return { ok: true, base: 'color/o', value: `${value}/${opRes.value}` };
+				}
+				return { ok: true, base: 'color', value };
+			}
+			if (opacityRaw !== undefined) {
+				return { ok: false, reason: `Opacity modifier "/${opacityRaw}" is not supported on font-size` };
+			}
+			return { ok: true, base: 'font-size', value };
+		}
+
+		if (prop in COLOR_PREFIX_MAP) {
+			const targetBase = COLOR_PREFIX_MAP[prop];
+			if (opacityRaw !== undefined) {
+				const opRes = normalizeOpacityToPercent(opacityRaw);
+				if (!opRes.ok) return opRes;
+				return { ok: true, base: `${targetBase}/o`, value: `${value}/${opRes.value}` };
+			}
+			return { ok: true, base: targetBase, value };
+		}
+
+		if (opacityRaw !== undefined) {
+			return {
+				ok: false,
+				reason: `Opacity modifier "/${opacityRaw}" is not supported for prefix "${prop}"`
+			};
+		}
 
 		if (SCALED_PROPERTIES.has(prop)) {
 			return { ok: true, base: `[${prop}]`, value };
@@ -763,29 +1149,16 @@ function convertCoreUtility(core: string): CoreMatch | CoreFail {
 		if (prop === 'grid-cols' || prop === 'grid-rows') {
 			return { ok: true, base: `[${prop}]`, value };
 		}
-		if (prop === 'bg') {
-			return { ok: true, base: 'bg', value };
-		}
-		if (prop === 'text') {
-			// Distinguish arbitrary color vs font-size
-			if (
-				rawVal.startsWith('#') ||
-				rawVal.startsWith('rgb') ||
-				rawVal.startsWith('hsl') ||
-				rawVal.startsWith('oklch') ||
-				rawVal.startsWith('var(--color')
-			) {
-				return { ok: true, base: 'color', value };
+		if (prop === 'opacity') {
+			const opRes = normalizeOpacityToPercent(value);
+			if (opRes.ok) {
+				return { ok: true, base: 'opacity', value: opRes.value };
 			}
-			return { ok: true, base: 'font-size', value };
-		}
-		if (prop in COLOR_PREFIX_MAP) {
-			return { ok: true, base: COLOR_PREFIX_MAP[prop], value };
+			return { ok: true, base: 'opacity', value };
 		}
 		if (
 			prop === 'z' ||
 			prop === 'order' ||
-			prop === 'opacity' ||
 			prop === 'aspect' ||
 			prop === 'rounded' ||
 			prop === 'tracking' ||
@@ -805,61 +1178,21 @@ function convertCoreUtility(core: string): CoreMatch | CoreFail {
 		};
 	}
 
-	// 5. Color utilities: e.g. `text-pink-500` -> `color=pink-500`, `bg-pink-500` -> `bg=pink-500`
-	const colorMatch = core.match(
-		/^(text|bg|border(?:-[trblsexy])?|outline|ring|inset-ring|shadow|decoration|accent|caret|fill|stroke|from|via|to)-([a-z]+)(?:-(\d+))?(?:\/(\d+))?$/
-	);
-	if (colorMatch) {
-		const [, prefix, colorName, intensityStr, opacityStr] = colorMatch;
-
-		if (opacityStr !== undefined) {
-			return {
-				ok: false,
-				reason: `Color opacity modifier "/${opacityStr}" is not supported in basic conversion`
-			};
-		}
-
-		// Check if this is actually a border width like `border-2` or `border-t-4`
-		if (intensityStr !== undefined) {
-			if (!COLOR_SET.has(colorName)) {
-				return {
-					ok: false,
-					reason: `Color "${colorName}" is not in the supported 0build color list`
-				};
-			}
-			const intensityNum = Number(intensityStr);
-			if (!INTENSITY_SET.has(intensityNum)) {
-				return {
-					ok: false,
-					reason: `Color intensity "${intensityStr}" is not supported (must be 50–950)`
-				};
-			}
-
-			const targetBase = COLOR_PREFIX_MAP[prefix];
-			return {
-				ok: true,
-				base: targetBase,
-				value: `${colorName}-${intensityNum}`
-			};
-		}
-
-		// Single-word colors like `text-white`, `bg-black`, `bg-transparent`, `text-current`
-		if (
-			colorName === 'white' ||
-			colorName === 'black' ||
-			colorName === 'transparent' ||
-			colorName === 'current' ||
-			colorName === 'inherit' ||
-			COLOR_SET.has(colorName)
-		) {
-			return {
-				ok: false,
-				reason: `Color "${colorName}${intensityStr ? `-${intensityStr}` : ''}" must use a supported palette color and intensity (e.g. pink-500)`
-			};
-		}
+	// 6. Color & color-opacity utilities: e.g. `text-pink-500` -> `color=pink-500`, `bg-pink-500/50` -> `bg/o=pink-500/50%`
+	const colorResult = convertColorUtility(core);
+	if (colorResult !== null) {
+		return colorResult;
 	}
 
-	// 6. Scaled numeric spacing utilities: `m-1` -> `m=1`, `-mt-2` -> `mt=-2`, `p-4` -> `p=4`, `gap-x-2` -> `gap-x=2`, `w-10` -> `w=10`
+	// 7. Standalone percentage opacity utility: `opacity-50%` -> `opacity=50%`
+	const opacityPctMatch = core.match(/^opacity-(\d+(?:\.\d+)?%)$/);
+	if (opacityPctMatch) {
+		const opRes = normalizeOpacityToPercent(opacityPctMatch[1]);
+		if (!opRes.ok) return opRes;
+		return { ok: true, base: 'opacity', value: opRes.value };
+	}
+
+	// 8. Scaled numeric spacing utilities: `m-1` -> `m=1`, `-mt-2` -> `mt=-2`, `p-4` -> `p=4`, `gap-x-2` -> `gap-x=2`, `w-10` -> `w=10`
 	const scaledMatch = core.match(/^(-?)([a-z-]+)-(\d+(?:\.\d+)?)$/);
 	if (scaledMatch) {
 		const [, neg, prop, numStr] = scaledMatch;
@@ -889,9 +1222,11 @@ function convertCoreUtility(core: string): CoreMatch | CoreFail {
 			return { ok: true, base: prop, value: neg ? `-${numStr}` : numStr };
 		}
 
-		// Opacity: `opacity-50` -> `opacity=50%`
+		// Opacity: `opacity-50` -> `opacity=50%`, `opacity-0.5` -> `opacity=50%`
 		if (!neg && prop === 'opacity') {
-			return { ok: true, base: 'opacity', value: `${numStr}%` };
+			const opRes = normalizeOpacityToPercent(numStr);
+			if (!opRes.ok) return opRes;
+			return { ok: true, base: 'opacity', value: opRes.value };
 		}
 
 		// Border widths: `border-2` -> `border-w=2px`, `border-t-2` -> `border-t-w=2px`
@@ -923,22 +1258,22 @@ function convertCoreUtility(core: string): CoreMatch | CoreFail {
 		}
 	}
 
-	// 7. Bare border width utilities: `border` -> `border-w=1px`, `border-t` -> `border-t-w=1px`
+	// 9. Bare border width utilities: `border` -> `border-w=1px`, `border-t` -> `border-t-w=1px`
 	if (/^border(?:-[trblsexy])?$/.test(core)) {
 		return { ok: true, base: `${core}-w`, value: '1px' };
 	}
 
-	// 8. Bare rounded -> `rounded-sm`
+	// 10. Bare rounded -> `rounded-sm`
 	if (core === 'rounded') {
 		return { ok: true, base: 'rounded-sm' };
 	}
 
-	// 9. Bare shadow -> `shadow-sm`
+	// 11. Bare shadow -> `shadow-sm`
 	if (core === 'shadow') {
 		return { ok: true, base: 'shadow-sm' };
 	}
 
-	// 10. Fractional sizing like `w-1/2` -> unsupported in basic numeric multiplier unless arbitrary
+	// 12. Fractional sizing like `w-1/2` -> unsupported in basic numeric multiplier unless arbitrary
 	if (/^-?[a-z-]+-\d+\/\d+$/.test(core)) {
 		return {
 			ok: false,
@@ -954,7 +1289,7 @@ function convertCoreUtility(core: string): CoreMatch | CoreFail {
 }
 
 /**
- * Converts a single Tailwind CSS utility token into a 0build token.
+ * Converts a single Tailwind CSS utility token into a 0build token (or space-joined tokens).
  */
 export function convertToken(token: string): { converted: string } | { error: string } {
 	const segments = splitByTopLevelColon(token);
@@ -1014,6 +1349,23 @@ export function convertToken(token: string): { converted: string } | { error: st
 	const coreResult = convertCoreUtility(core);
 	if (!coreResult.ok) {
 		return { error: coreResult.reason };
+	}
+
+	if (coreResult.tokens && coreResult.tokens.length > 0) {
+		return {
+			converted: coreResult.tokens
+				.map((spec) =>
+					format0buildToken({
+						isDark,
+						breakpoint,
+						base: spec.base,
+						pseudoClass,
+						pseudoElement,
+						value: spec.value
+					})
+				)
+				.join(' ')
+		};
 	}
 
 	return {
