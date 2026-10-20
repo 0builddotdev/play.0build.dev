@@ -1,0 +1,82 @@
+<!doctype html>
+<html class="z-not-ready" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>0build</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/0builddotdev/0build@0.6.12/dist/css/kit.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/0builddotdev/0build@0.6.12/dist/css/chart.min.css"
+    />
+
+    <script>
+      const htmlElement = document.documentElement;
+
+      const __Z_THEME__ = JSON.parse(
+        localStorage.getItem("__Z_THEME__") || "{}",
+      );
+
+      if (
+        __Z_THEME__.mode === "dark" ||
+        (!__Z_THEME__.mode &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches)
+      ) {
+        htmlElement.classList.add("dark");
+      } else {
+        htmlElement.classList.remove("dark");
+      }
+
+      htmlElement.classList.add(__Z_THEME__.layout || "z-layout-small");
+    </script>
+
+    <!-- Load the core file in the <head> -->
+    <script
+      src="https://cdn.jsdelivr.net/gh/0builddotdev/0build@0.6.12/dist/js/hwc/core.iife.js"
+      type="module"
+    ></script>
+  </head>
+  <body class="bg color" style="--bg: var(--z-bg); --color: var(--z-bg-f)">
+    <!-- CODE HERE -->
+
+    <script src="https://cdn.jsdelivr.net/gh/0builddotdev/0build@0.6.12/dist/js/uikit.min.js"></script>
+
+    <script>
+      window.zRuntime = window.zRuntime || {};
+
+      zRuntime.debug = true;
+
+      // Optional: Suppress errors if you don't plan to use Lucide or ApexCharts
+      // window.zLucide = {};
+      // window.zApexCharts = {};
+    </script>
+
+    <!-- Optional: Runtime -->
+    <script
+      src="https://cdn.jsdelivr.net/gh/0builddotdev/0build@0.6.12/dist/js/runtime.iife.js"
+      type="module"
+    ></script>
+
+    <!-- Optional: Icons -->
+    <script
+      src="https://cdn.jsdelivr.net/gh/0builddotdev/0build@0.6.12/dist/js/hwc/icon.iife.js"
+      type="module"
+    ></script>
+
+    <!-- Optional: Charts -->
+    <script
+      src="https://cdn.jsdelivr.net/gh/0builddotdev/0build@0.6.12/dist/js/hwc/chart.iife.js"
+      type="module"
+    ></script>
+
+    <!-- Load components last -->
+    <script
+      src="https://cdn.jsdelivr.net/gh/0builddotdev/0build@0.6.12/dist/js/hwc/components.iife.js"
+      type="module"
+    ></script>
+  </body>
+</html>
