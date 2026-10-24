@@ -1,0 +1,34 @@
+# Registry
+
+**Current version:** `0.6.14`
+
+This directory serves as the core definitions dictionary for the **0build** family of products. It provides the foundational design tokens, CSS generation rules, and component schemas used across the ecosystem.
+
+> ⚠️ **IMPORTANT: DO NOT UPDATE THESE FILES DIRECTLY** ⚠️
+>
+> To maintain a single source of truth across all products, modifications should **never** be made locally in this repository.
+>
+> 1. Make your updates in the main [`0builddotdev/0build`](https://github.com/0builddotdev/0build) repository.
+> 2. Copy and paste the updated files into this directory.
+
+---
+
+## 📁 File Manifest
+
+### `common.ts`
+
+The base design system configuration. It includes the registry of static design tokens such as:
+
+* Colors and intensities
+* Responsive breakpoints
+* Other foundational theme variables
+
+### `rules.ts`
+
+The CSS generation engine's blueprint. This file exports a massive configuration object containing all CSS rules, divided into `styles` and `utilities` layers. It is heavily utilized for runtime (on-the-fly) CSS generation and IDE intellisense.
+
+It also exports two derived sets used for quick validation and matching:
+
+* `CC` **(Constant Classes):** Extracted from the `utilities` layer (e.g., static classes like `content-center`).
+* `VD` **(Value-Driven Classes):** Extracted from the `styles` layer, automatically mapped with their `dark:` variants.
+* `SCALED` **(Scaled Classes):** Extracted from `RULES` where the first value matches the spacing calculation pattern.
