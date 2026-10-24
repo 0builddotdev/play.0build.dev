@@ -675,6 +675,13 @@
 			>
 				<span>Convert</span>
 			</a>
+			<a
+				href={resolve('/(app)/rewrite')}
+				class="nav-link-btn"
+				title="Open 0build Rewriter"
+			>
+				<span>Rewrite</span>
+			</a>
 
 			<span class="control-divider" aria-hidden="true"></span>
 

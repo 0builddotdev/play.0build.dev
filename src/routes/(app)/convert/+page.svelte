@@ -142,20 +142,17 @@
 				class="nav-link-btn"
 				title="Open Interactive Playground"
 			>
-				<svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden="true">
-					<path
-						d="M6.5 6L3 10l3.5 4M13.5 6L17 10l-3.5 4M11 4l-2 12"
-						stroke="currentColor"
-						stroke-width="1.6"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					/>
-				</svg>
 				<span>Playground</span>
 			</a>
-
 			<a href={resolve('/(app)/theme-builder')} class="nav-link-btn" title="Open Theme Builder">
 				<span>Theme Builder</span>
+			</a>
+			<a
+				href={resolve('/(app)/rewrite')}
+				class="nav-link-btn"
+				title="Open 0build Rewriter"
+			>
+				<span>Rewrite</span>
 			</a>
 
 			<span class="control-divider" aria-hidden="true"></span>

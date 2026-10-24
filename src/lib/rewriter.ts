@@ -6,10 +6,13 @@
  *   - shorthand  class="p=4"
  *   - x-ui       <x-ui class="..." u="p=4">   (Laravel component)
  *
- * Only elements that actually carry a 0build pair are rewritten (an `=` shorthand
- * token, a `u` attribute on <x-ui>, or a class that has its `--var` in `style`).
- * Everything else is copied through byte-for-byte.
+ * Uses `decoder`, `encoder`, and `variable` from `./runtime/functions.js` and
+ * registry constants from `./runtime/registry/*`.
  */
+
+import { decoder, encoder, variable, type ParsedClass } from './runtime/functions.js';
+import { COLORS, INTENSITIES, PSEUDO_CLASSES, PSEUDO_ELEMENTS } from './runtime/registry/common.js';
+import { SCALED } from './runtime/registry/rules.js';
 
 export type RewriteMode = 'proper' | 'xui' | 'shorthand';
 
@@ -22,106 +25,16 @@ export interface RewriteResult {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Framework knowledge — adjust these to match the real 0build registry       */
+/*  Framework knowledge — single source of truth: runtime/registry & functions*/
 /* -------------------------------------------------------------------------- */
 
-/** Palette names that resolve `bg=pink-500` → `var(--color-pink-500)`. */
-const COLOR_NAMES = [
-	'slate',
-	'gray',
-	'zinc',
-	'neutral',
-	'stone',
-	'red',
-	'orange',
-	'amber',
-	'yellow',
-	'lime',
-	'green',
-	'emerald',
-	'teal',
-	'cyan',
-	'sky',
-	'blue',
-	'indigo',
-	'violet',
-	'purple',
-	'fuchsia',
-	'pink',
-	'rose'
-];
-const COLOR_SHADES = ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'];
+export const COLOR_NAMES = COLORS;
+export const COLOR_SHADES = INTENSITIES;
+export { PSEUDO_CLASSES, PSEUDO_ELEMENTS, SCALED };
+
 const COLOR_PATTERN = `(?:${COLOR_NAMES.join('|')})-(?:${COLOR_SHADES.join('|')})`;
 const COLOR_RE = new RegExp(`^${COLOR_PATTERN}$`);
 const COLOR_VAR_RE = new RegExp(`^var\\(--color-(${COLOR_PATTERN})\\)$`);
-
-/** Utilities multiplied by `var(--spacing)`; raw values (`4px`) must go through `[prop]`. */
-const SCALED = new Set([
-	'm',
-	'mx',
-	'my',
-	'mt',
-	'mr',
-	'mb',
-	'ml',
-	'ms',
-	'me',
-	'p',
-	'px',
-	'py',
-	'pt',
-	'pr',
-	'pb',
-	'pl',
-	'ps',
-	'pe',
-	'gap',
-	'gap-x',
-	'gap-y',
-	'space-x',
-	'space-y',
-	'size',
-	'w',
-	'h',
-	'min-w',
-	'min-h',
-	'max-w',
-	'max-h',
-	'top',
-	'right',
-	'bottom',
-	'left',
-	'inset',
-	'inset-x',
-	'inset-y'
-]);
-
-/** Segments that are prefixes/states, i.e. NOT the utility itself. */
-const MODIFIERS = new Set([
-	'dark',
-	'sm',
-	'md',
-	'lg',
-	'xl',
-	'2xl',
-	'hover',
-	'focus',
-	'focus-visible',
-	'focus-within',
-	'active',
-	'visited',
-	'disabled',
-	'checked',
-	'first',
-	'last',
-	'odd',
-	'even',
-	'empty',
-	'invalid',
-	'placeholder',
-	'before',
-	'after'
-]);
 
 const VOID = new Set([
 	'area',
@@ -194,12 +107,11 @@ interface StackEntry {
 /* -------------------------------------------------------------------------- */
 
 const PLAIN_NUMBER = /^-?\d+(\.\d+)?$/;
-const KEY_RE = /^[A-Za-z0-9_\-:/.[\]]+$/;
 const ARBITRARY_PROP_RE = /^(?:[\w-]+:)*\[[^\]]+\](?::[\w-]+)*=\{(?!\{).*\}$/s;
 
 const isWs = (c: string | undefined): boolean => c !== undefined && /\s/.test(c);
 
-/** `[m]=4px`-style arbitrary properties stay in `class` untouched. */
+/** `[color]={red}`-style arbitrary properties stay in `class` untouched. */
 const isArbitraryProp = (token: string): boolean => ARBITRARY_PROP_RE.test(token);
 
 const needsRaw = (value: string): boolean => !PLAIN_NUMBER.test(value) && !value.includes('{{');
@@ -207,12 +119,20 @@ const needsRaw = (value: string): boolean => !PLAIN_NUMBER.test(value) && !value
 /** Whitespace outside Blade `{{ }}` interpolations. */
 const hasWs = (value: string): boolean => /\s/.test(value.replace(/\{\{[\s\S]*?\}\}/g, ''));
 
-const varName = (cls: string): string => '--' + cls.replace(/[[\]]/g, '').replace(/[:/]/g, '-');
+const resolveColor = (value: string): string =>
+	COLOR_RE.test(value) ? `var(--color-${value})` : value;
 
-const resolveColor = (value: string): string => (COLOR_RE.test(value) ? `var(--color-${value})` : value);
-
-function propertyIndex(cls: string): number {
-	return cls.split(':').findIndex((segment) => !MODIFIERS.has(segment));
+/**
+ * Generates CSS variable names from a `ParsedClass` via `variable()` from `runtime/functions.ts`.
+ */
+function cssVarFromParsed(parsed: ParsedClass, nameOverride?: string): string {
+	return variable({
+		isDark: parsed.isDark,
+		prefix: parsed.prefix,
+		name: nameOverride ?? parsed.property,
+		pseudoClasses: parsed.pseudoClasses,
+		pseudoElement: parsed.pseudoElement
+	});
 }
 
 function lastTopLevelSlash(value: string): number {
@@ -307,51 +227,79 @@ function attr(name: string, value: string): string {
 const php = (value: string): string => value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
 /* -------------------------------------------------------------------------- */
-/*  Pair conversion                                                            */
+/*  Pair conversion (powered by decoder, encoder, and variable)               */
 /* -------------------------------------------------------------------------- */
 
 /** `dark:sm:bg:hover=green` / `bg/o=pink-500/80` / `m=4px` → canonical pair. */
-function fromShorthand(key: string, value: string): Pair {
-	if (key.endsWith('/o')) {
-		const base = varName(key.slice(0, -2));
+function fromShorthand(key: string, value: string): Pair | null {
+	const res = decoder(key, { allowBare: true });
+	if (!res.ok) {
+		return null;
+	}
+
+	let parsed = res.value;
+
+	if (parsed.property.endsWith('/o')) {
+		const baseProp = parsed.property.slice(0, -2);
+		const baseVar = cssVarFromParsed(parsed, baseProp);
 		const slash = lastTopLevelSlash(value);
 		const color = slash === -1 ? value : value.slice(0, slash);
 		const opacity = slash === -1 ? '' : value.slice(slash + 1);
-		const vars: Array<[string, string]> = [[base, resolveColor(color)]];
-		if (opacity) vars.push([`${base}-o`, PLAIN_NUMBER.test(opacity) ? `${opacity}%` : opacity]);
-		return { cls: key, vars };
+		const vars: Array<[string, string]> = [[baseVar, resolveColor(color)]];
+		if (opacity) {
+			const opacityVar = cssVarFromParsed(parsed, `${baseProp}-o`);
+			vars.push([opacityVar, PLAIN_NUMBER.test(opacity) ? `${opacity}%` : opacity]);
+		}
+		return { cls: parsed.fullClass, vars };
 	}
 
-	let cls = key;
-	const segments = key.split(':');
-	const index = propertyIndex(key);
-	const segment = index === -1 ? undefined : segments[index];
-	if (segment && !segment.startsWith('[') && SCALED.has(segment) && needsRaw(value)) {
-		segments[index] = `[${segment}]`;
-		cls = segments.join(':');
+	if (!parsed.property.startsWith('[') && SCALED.has(parsed.property) && needsRaw(value)) {
+		const rewrittenCls = encoder({
+			...parsed,
+			property: `[${parsed.property}]`,
+			value: null,
+			important: false
+		});
+		const redecoded = decoder(rewrittenCls, { allowBare: true });
+		if (redecoded.ok) {
+			parsed = redecoded.value;
+		}
 	}
-	return { cls, vars: [[varName(cls), resolveColor(value)]] };
+
+	return {
+		cls: parsed.fullClass,
+		vars: [[cssVarFromParsed(parsed), resolveColor(value)]]
+	};
 }
 
 /** A plain class token whose `--var` is declared in `style`. */
 function fromProper(token: string, vars: Map<string, string>): Pair | null {
-	if (token.endsWith('/o')) {
-		const color = varName(token.slice(0, -2));
-		const opacity = `${color}-o`;
-		const colorValue = vars.get(color);
-		const opacityValue = vars.get(opacity);
+	const res = decoder(token, { allowBare: true });
+	if (!res.ok) {
+		return null;
+	}
+
+	const parsed = res.value;
+
+	if (parsed.property.endsWith('/o')) {
+		const baseProp = parsed.property.slice(0, -2);
+		const colorVar = cssVarFromParsed(parsed, baseProp);
+		const opacityVar = cssVarFromParsed(parsed, `${baseProp}-o`);
+		const colorValue = vars.get(colorVar);
+		const opacityValue = vars.get(opacityVar);
 		if (colorValue === undefined || opacityValue === undefined) return null;
 		return {
-			cls: token,
+			cls: parsed.fullClass,
 			vars: [
-				[color, colorValue],
-				[opacity, opacityValue]
+				[colorVar, colorValue],
+				[opacityVar, opacityValue]
 			]
 		};
 	}
-	const name = varName(token);
+
+	const name = cssVarFromParsed(parsed);
 	const value = vars.get(name);
-	return value === undefined ? null : { cls: token, vars: [[name, value]] };
+	return value === undefined ? null : { cls: parsed.fullClass, vars: [[name, value]] };
 }
 
 /**
@@ -359,34 +307,42 @@ function fromProper(token: string, vars: Map<string, string>): Pair | null {
  * Returns null when it can't be written faithfully as shorthand.
  */
 function toShort(pair: Pair): { key: string; value: string } | null {
-	if (pair.cls.endsWith('/o')) {
+	const res = decoder(pair.cls, { allowBare: true });
+	if (!res.ok) {
+		return null;
+	}
+
+	const parsed = res.value;
+
+	if (parsed.property.endsWith('/o')) {
 		if (pair.vars.length !== 2) return null;
-		const color = pair.vars[0]![1];
+		const rawColor = pair.vars[0]![1];
+		const colorMatch = COLOR_VAR_RE.exec(rawColor);
+		const color = colorMatch ? colorMatch[1]! : rawColor;
 		const opacity = /^(\d+(?:\.\d+)?)%$/.exec(pair.vars[1]![1]);
 		if (!opacity || !color) return null;
-		return { key: pair.cls, value: `${color}/${opacity[1]}` };
+		return { key: parsed.fullClass, value: `${color}/${opacity[1]}` };
 	}
 
 	if (pair.vars.length !== 1) return null;
 	const value = pair.vars[0]![1];
 	if (!value) return null;
 
-	let key = pair.cls;
-	const segments = key.split(':');
-	const index = propertyIndex(key);
-	const segment = index === -1 ? undefined : segments[index];
-	if (segment) {
-		if (segment.startsWith('[') && segment.endsWith(']')) {
-			const inner = segment.slice(1, -1);
-			if (SCALED.has(inner) && needsRaw(value)) {
-				segments[index] = inner;
-				key = segments.join(':');
-			}
-		} else if (SCALED.has(segment) && needsRaw(value)) {
-			// `m` + `--m: 4px` would become `[m]` once the runtime resolves `m=4px`.
-			// That changes the meaning, so keep it in proper form.
-			return null;
+	let key = parsed.fullClass;
+	if (parsed.property.startsWith('[') && parsed.property.endsWith(']')) {
+		const inner = parsed.property.slice(1, -1);
+		if (SCALED.has(inner) && needsRaw(value)) {
+			key = encoder({
+				...parsed,
+				property: inner,
+				value: null,
+				important: false
+			});
 		}
+	} else if (SCALED.has(parsed.property) && needsRaw(value)) {
+		// `m` + `--m: 4px` would become `[m]` once the runtime resolves `m=4px`.
+		// That changes the meaning, so keep it in proper form.
+		return null;
 	}
 
 	const color = COLOR_VAR_RE.exec(value);
@@ -461,7 +417,7 @@ function readOpenTag(src: string, start: number): OpenTag | null {
 			}
 		}
 
-		if (i === attrStart) i++; // never stall on stray characters
+		if (i === attrStart) i++;
 		attrs.push({ name: attrName, value, raw: src.slice(attrStart, i) });
 	}
 	return null;
@@ -474,7 +430,10 @@ function classify(token: string, vars: Map<string, string>, used: Set<string>): 
 	if (eq > 0) {
 		const key = token.slice(0, eq);
 		const value = token.slice(eq + 1);
-		if (KEY_RE.test(key) && value) return { kind: 'pair', pair: fromShorthand(key, value) };
+		if (value) {
+			const pair = fromShorthand(key, value);
+			if (pair) return { kind: 'pair', pair };
+		}
 		return { kind: 'static', token };
 	}
 
@@ -490,9 +449,7 @@ function analyze(tag: OpenTag, mode: RewriteMode): Analysis | null {
 	const lower = tag.name.toLowerCase();
 	const isXui = lower === 'x-ui';
 
-	// Only plain lowercase HTML tags and <x-ui> are candidates. Components are left alone.
 	if (!isXui && !/^[a-z][a-z0-9]*$/.test(tag.name)) return null;
-	// `:u` is dynamic (conditionals), nothing static to rewrite.
 	if (tag.attrs.some((a) => a.name === ':u')) return null;
 
 	const get = (name: string): string | null =>
@@ -580,8 +537,6 @@ function build(
 	}
 	if (styleDecls.length) group.push(attr('style', styleDecls.join('; ')));
 
-	// Keep passthrough attributes where they were; the generated group takes the
-	// slot of the first class/style/u/as attribute.
 	const owned = new Set(['class', 'style']);
 	if (a.isXui) {
 		owned.add('u');
@@ -649,7 +604,7 @@ function rewrite(input: string, mode: RewriteMode): { output: string; rewritten:
 				continue;
 			}
 			let name = match[1]!.toLowerCase();
-			if (name === 'xui') name = 'x-ui'; // tolerate the `</xui>` typo
+			if (name === 'xui') name = 'x-ui';
 			let index = stack.length - 1;
 			while (index >= 0 && stack[index]!.src !== name) index--;
 

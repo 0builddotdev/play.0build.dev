@@ -427,28 +427,25 @@
 
 		<div class="topbar-right">
 			<a
-				href={resolve('/(app)/convert')}
-				class="action-btn nav-link"
-				title="Open Tailwind to 0build Converter"
-			>
-				<svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden="true">
-					<path
-						d="M4 7h12m-3-3l3 3-3 3M16 13H4m3-3l-3 3 3 3"
-						stroke="currentColor"
-						stroke-width="1.6"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					/>
-				</svg>
-				<span>Convert</span>
-			</a>
-
-			<a
 				href={resolve('/(app)/theme-builder')}
 				class="action-btn nav-link"
 				title="Open Theme Builder"
 			>
 				<span>Theme Builder</span>
+			</a>
+			<a
+				href={resolve('/(app)/convert')}
+				class="action-btn nav-link"
+				title="Open Tailwind to 0build Converter"
+			>
+				<span>Convert</span>
+			</a>
+			<a
+				href={resolve('/(app)/rewrite')}
+				class="nav-link-btn"
+				title="Open 0build Rewriter"
+			>
+				<span>Rewrite</span>
 			</a>
 
 			<span class="control-divider" aria-hidden="true"></span>
