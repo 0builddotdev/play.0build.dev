@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { resolve } from '$app/paths';
 	import { COLORS, INTENSITIES } from '#lib/converter.js';
 	import {
 		COLOR_TOKENS,
@@ -14,6 +13,7 @@
 		type Theme,
 		type TokenValue
 	} from '#lib/theme-config.js';
+	import { resolve } from '$app/paths';
 
 	interface Props {
 		initialMode?: 'basic' | 'advanced';
@@ -55,19 +55,30 @@
 		function walk(content: string) {
 			let j = 0;
 			while (j < content.length) {
-				while (j < content.length && /\s/.test(content[j])) j++;
-				if (j >= content.length) break;
+				while (j < content.length && /\s/.test(content[j])) {
+					j++;
+				}
+				if (j >= content.length) {
+					break;
+				}
 
 				const selStart = j;
-				while (j < content.length && content[j] !== '{') j++;
-				if (j >= content.length) break;
+				while (j < content.length && content[j] !== '{') {
+					j++;
+				}
+				if (j >= content.length) {
+					break;
+				}
 
 				const selector = content.slice(selStart, j).trim();
 				let depth = 0;
 				const bodyStart = j;
 				do {
-					if (content[j] === '{') depth++;
-					else if (content[j] === '}') depth--;
+					if (content[j] === '{') {
+						depth++;
+					} else if (content[j] === '}') {
+						depth--;
+					}
 					j++;
 				} while (j < content.length && depth > 0);
 
@@ -78,9 +89,13 @@
 					const declarations: Record<string, string> = {};
 					for (const stmt of body.split(';')) {
 						const trimmed = stmt.trim();
-						if (!trimmed) continue;
+						if (!trimmed) {
+							continue;
+						}
 						const idx = trimmed.indexOf(':');
-						if (idx === -1) continue;
+						if (idx === -1) {
+							continue;
+						}
 						const prop = trimmed.slice(0, idx).trim();
 						const value = trimmed.slice(idx + 1).trim();
 						if (prop && value) {
@@ -192,8 +207,11 @@
 		const groups: Record<string, Theme[]> = {};
 		for (const t of themes) {
 			const g = t.group || 'theme';
-			if (groups[g]) groups[g].push(t);
-			else groups[g] = [t];
+			if (groups[g]) {
+				groups[g].push(t);
+			} else {
+				groups[g] = [t];
+			}
 		}
 		return Object.entries(groups);
 	});
@@ -227,7 +245,9 @@
 	let finalCss = $derived.by(() => {
 		if (builderMode === 'basic') {
 			const target = themes[0];
-			if (!target) return '';
+			if (!target) {
+				return '';
+			}
 			const blocks: string[] = [];
 			for (const [layerName, suffix] of [
 				['light', ''],
@@ -239,7 +259,9 @@
 					blocks.push(`\t.z-theme-custom${suffix} {\n${lines.join('\n')}\n\t}`);
 				}
 			}
-			if (blocks.length === 0) return '';
+			if (blocks.length === 0) {
+				return '';
+			}
 			return `@layer theme {\n${blocks.join('\n\n')}\n}`;
 		}
 
@@ -256,10 +278,14 @@
 				const lines = entries.map(([k, val]) => `\t\t--z-${k}: ${formatTokenValue(k, val)};`);
 
 				for (const rule of customRules) {
-					if (rule.selector !== selector) continue;
+					if (rule.selector !== selector) {
+						continue;
+					}
 					for (const [prop, val] of Object.entries(rule.declarations)) {
 						const tokenKey = prop.startsWith('--z-') ? prop.slice(4) : null;
-						if (tokenKey && KNOWN_TOKENS.has(tokenKey)) continue;
+						if (tokenKey && KNOWN_TOKENS.has(tokenKey)) {
+							continue;
+						}
 						lines.push(`\t\t${prop}: ${val};`);
 					}
 				}
@@ -270,7 +296,9 @@
 			}
 		}
 
-		if (rawBlocks.length === 0) return '';
+		if (rawBlocks.length === 0) {
+			return '';
+		}
 		return `@layer theme {\n${rawBlocks
 			.map((b) => `\t${b.selector} {\n${b.lines.join('\n')}\n\t}`)
 			.join('\n\n')}\n}`;
@@ -297,7 +325,9 @@
 
 		return GROUPS.map((group) => {
 			const vars = group.vars.filter((v) => {
-				if (showModifiedOnly && !(v in layer)) return false;
+				if (showModifiedOnly && !(v in layer)) {
+					return false;
+				}
 				if (q && !v.toLowerCase().includes(q) && !group.label.toLowerCase().includes(q)) {
 					return false;
 				}
@@ -325,7 +355,9 @@
 
 	// Persist state to localStorage
 	$effect(() => {
-		if (!initialized) return;
+		if (!initialized) {
+			return;
+		}
 		const snapshot: PersistedThemeState = {
 			mode: builderMode,
 			themes,
@@ -346,7 +378,9 @@
 
 	// Close color palette popover on outside click or Escape
 	$effect(() => {
-		if (!openPopoverToken) return;
+		if (!openPopoverToken) {
+			return;
+		}
 
 		const onPointerDown = (e: PointerEvent) => {
 			const target = e.target as HTMLElement | null;
@@ -371,7 +405,9 @@
 	});
 
 	function setTokenValue(token: string, value: TokenValue) {
-		if (!activeTheme) return;
+		if (!activeTheme) {
+			return;
+		}
 		if (value === '' || value === undefined || value === null) {
 			delete activeTheme[editMode][token];
 			return;
@@ -380,7 +416,9 @@
 	}
 
 	function commitTextToken(token: string, raw: string) {
-		if (!activeTheme) return;
+		if (!activeTheme) {
+			return;
+		}
 		const val = raw.trim();
 		if (!val) {
 			delete activeTheme[editMode][token];
@@ -397,12 +435,16 @@
 	}
 
 	function resetToken(token: string) {
-		if (!activeTheme) return;
+		if (!activeTheme) {
+			return;
+		}
 		delete activeTheme[editMode][token];
 	}
 
 	function resetActiveTheme() {
-		if (!activeTheme) return;
+		if (!activeTheme) {
+			return;
+		}
 		activeTheme.light = {};
 		activeTheme.dark = {};
 		resetFeedback = true;
@@ -412,14 +454,18 @@
 	}
 
 	function editedInGroup(vars: string[]): number {
-		if (!activeTheme) return 0;
+		if (!activeTheme) {
+			return 0;
+		}
 		const layer = activeTheme[editMode];
 		return vars.filter((v) => v in layer).length;
 	}
 
 	function selectThemeForPreview(themeId: string) {
 		const target = themes.find((t) => t.id === themeId);
-		if (!target) return;
+		if (!target) {
+			return;
+		}
 		const group = target.group || 'theme';
 		for (const t of themes) {
 			if ((t.group || 'theme') === group) {
@@ -432,8 +478,11 @@
 		const groups: Record<string, Theme[]> = {};
 		for (const t of themes) {
 			const g = t.group || 'theme';
-			if (groups[g]) groups[g].push(t);
-			else groups[g] = [t];
+			if (groups[g]) {
+				groups[g].push(t);
+			} else {
+				groups[g] = [t];
+			}
 		}
 		for (const groupThemes of Object.values(groups)) {
 			const enabledList = groupThemes.filter((t) => t.enabled !== false);
@@ -456,9 +505,13 @@
 	}
 
 	function removeTheme(id: string) {
-		if (themes.length <= 1) return;
+		if (themes.length <= 1) {
+			return;
+		}
 		const idx = themes.findIndex((t) => t.id === id);
-		if (idx === -1) return;
+		if (idx === -1) {
+			return;
+		}
 		themes.splice(idx, 1);
 		if (activeId === id) {
 			activeId = themes[Math.max(0, idx - 1)].id;
@@ -474,7 +527,9 @@
 			expected.push(base, `${base}.dark`);
 		}
 		const missing = expected.filter((s) => !existing.has(s));
-		if (missing.length === 0) return;
+		if (missing.length === 0) {
+			return;
+		}
 		const stubs = missing.map((s) => `${s} {\n}`).join('\n\n');
 		customCss = customCss.trim() ? `${customCss.trim()}\n\n${stubs}` : stubs;
 	}
@@ -504,7 +559,9 @@
 		isDraggingSplit = true;
 
 		const onPointerMove = (e: PointerEvent) => {
-			if (!workspaceRef) return;
+			if (!workspaceRef) {
+				return;
+			}
 			const rect = workspaceRef.getBoundingClientRect();
 			const nextWidth = e.clientX - rect.left;
 			sidebarWidth = Math.min(720, Math.max(360, Math.round(nextWidth)));
@@ -521,7 +578,9 @@
 	}
 
 	async function copyCss() {
-		if (!finalCss) return;
+		if (!finalCss) {
+			return;
+		}
 		try {
 			await navigator.clipboard.writeText(finalCss);
 			copyFeedback = true;
@@ -534,7 +593,9 @@
 	}
 
 	function downloadCss() {
-		if (!finalCss) return;
+		if (!finalCss) {
+			return;
+		}
 		const filename = builderMode === 'basic' ? 'z-theme-custom.css' : 'z-themes.css';
 		const url = URL.createObjectURL(new Blob([finalCss], { type: 'text/css' }));
 		const a = document.createElement('a');
@@ -675,11 +736,7 @@
 			>
 				<span>Convert</span>
 			</a>
-			<a
-				href={resolve('/(app)/rewrite')}
-				class="nav-link-btn"
-				title="Open 0build Rewriter"
-			>
+			<a href={resolve('/(app)/rewrite')} class="nav-link-btn" title="Open 0build Rewriter">
 				<span>Rewrite</span>
 			</a>
 

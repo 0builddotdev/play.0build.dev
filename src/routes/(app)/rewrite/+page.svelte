@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import MonacoEditor from '#lib/components/MonacoEditor.svelte';
 	import { rewriteAll } from '#lib/rewriter.js';
+	import { resolve } from '$app/paths';
 
 	const DEFAULT_SAMPLE = `<div class="display-flex p=4 dark:sm:bg:hover=green">
   <h2 class="color" style="--color: var(--color-pink-500)">Proper in</h2>
@@ -44,7 +44,9 @@
 			await navigator.clipboard.writeText(result[key]);
 			copiedPane = key;
 			setTimeout(() => {
-				if (copiedPane === key) copiedPane = null;
+				if (copiedPane === key) {
+					copiedPane = null;
+				}
 			}, 1800);
 		} catch {
 			// Ignore clipboard errors

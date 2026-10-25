@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import MonacoEditor from '#lib/components/MonacoEditor.svelte';
 	import { convertTailwindTo0build } from '#lib/converter.js';
+	import { resolve } from '$app/paths';
 
 	const DEFAULT_SAMPLE = `<div class="flex items-center justify-between p-4 m-1 m-[1px] bg-slate-900 dark:bg-slate-800 rounded-xl shadow-lg">
   <h2 class="block text-xl font-bold text-pink-500 dark:sm:text-pink-400 after:text-pink-500">
@@ -147,11 +147,7 @@
 			<a href={resolve('/(app)/theme-builder')} class="nav-link-btn" title="Open Theme Builder">
 				<span>Theme Builder</span>
 			</a>
-			<a
-				href={resolve('/(app)/rewrite')}
-				class="nav-link-btn"
-				title="Open 0build Rewriter"
-			>
+			<a href={resolve('/(app)/rewrite')} class="nav-link-btn" title="Open 0build Rewriter">
 				<span>Rewrite</span>
 			</a>
 
@@ -201,13 +197,8 @@
 			/>
 		</svg>
 		<p>
-			<strong>Disclaimer:</strong> Not everything in Tailwind CSS is supported. This tool only
-			converts basic Tailwind utility patterns, standard breakpoints (<code>sm</code>–<code
-				>2xl</code
-			>, no
-			<code>max-*</code>), supported interactive states, <code>::before</code> /
-			<code>::after</code>, and the 0build color palette (<code>50</code>–<code>950</code>).
-			Unsupported tokens are left as-is and listed in the <strong>Reports</strong> panel.
+			<strong>Disclaimer:</strong> Not everything in Tailwind CSS is supported. Unsupported tokens
+			are left as-is and listed in the <strong>Reports</strong> panel.
 		</p>
 	</div>
 

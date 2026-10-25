@@ -1,3503 +1,3891 @@
 interface BaseRule {
-  selector: string;
-  properties: string | string[];
-  dark?: boolean;
-  placeholders?: Record<string, string>;
-  layer?: string;
-  impliedPseudo?: string;
-  fallback?: string;
+	selector: string;
+	properties: string | string[];
+	dark?: boolean;
+	placeholders?: Record<string, string>;
+	layer?: string;
+	impliedPseudo?: string;
+	fallback?: string;
 }
 
 export type Rule = BaseRule &
-  (
-    | {
-        arbitrary: true;
-        values?: string[];
-      }
-    | {
-        arbitrary?: false;
-        values: string[];
-      }
-  );
+	(
+		| {
+				arbitrary: true;
+				values?: string[];
+		  }
+		| {
+				arbitrary?: false;
+				values: string[];
+		  }
+	);
 
 type FamilyEntry = string | string[];
 type Family = [layer: string | null, prefix: string, properties: string[], entries: FamilyEntry[]];
 
 const FAMILIES: Family[] = [
-  ['utilities', 'content-', ['align-content'], [
-    'normal',
-    'center',
-    ['start', 'flex-start'],
-    ['end', 'flex-end'],
-    ['between', 'space-between'],
-    ['around', 'space-around'],
-    ['evenly', 'space-evenly'],
-    'baseline',
-    'stretch',
-  ]],
-  ['utilities', 'items-', ['align-items'], [
-    ['start', 'flex-start'],
-    ['end', 'flex-end'],
-    'center',
-    'stretch',
-    'baseline',
-    ['end-safe', 'safe flex-end'],
-    ['center-safe', 'safe center'],
-    ['baseline-last', 'last baseline'],
-  ]],
-  ['utilities', 'self-', ['align-self'], [
-    'auto',
-    ['start', 'flex-start'],
-    ['end', 'flex-end'],
-    'center',
-    'stretch',
-    'baseline',
-    ['end-safe', 'safe flex-end'],
-    ['center-safe', 'safe center'],
-    ['baseline-last', 'last baseline'],
-  ]],
-  ['utilities', 'appearance-', ['appearance'], [
-    'none',
-    'auto',
-  ]],
-  ['utilities', 'aspect-', ['aspect-ratio'], [
-    ['square', '1/1'],
-    'auto',
-  ]],
-  ['utilities', 'backface-', ['backface-visibility'], [
-    'hidden',
-    'visible',
-  ]],
-  ['utilities', 'bg-', ['background-attachment'], [
-    'fixed',
-    'local',
-    'scroll',
-  ]],
-  ['utilities', 'bg-blend-', ['background-blend-mode'], [
-    'normal',
-    'multiply',
-    'screen',
-    'overlay',
-    'darken',
-    'lighten',
-    'color-dodge',
-    'color-burn',
-    'hard-light',
-    'soft-light',
-    'difference',
-    'exclusion',
-    'hue',
-    'saturation',
-    'color',
-    'luminosity',
-  ]],
-  ['utilities', 'bg-clip-', ['background-clip'], [
-    ['border', 'border-box'],
-    ['padding', 'padding-box'],
-    ['content', 'content-box'],
-    'text',
-  ]],
-  ['utilities', 'bg-origin-', ['background-origin'], [
-    ['border', 'border-box'],
-    ['padding', 'padding-box'],
-    ['content', 'content-box'],
-  ]],
-  ['utilities', 'bg-', ['background-position'], [
-    ['top-left', 'top left'],
-    'top',
-    ['top-right', 'top right'],
-    'left',
-    'center',
-    'right',
-    ['bottom-left', 'bottom left'],
-    'bottom',
-    ['bottom-right', 'bottom right'],
-  ]],
-  ['utilities', 'bg-', ['background-repeat'], [
-    'repeat',
-    'repeat-x',
-    'repeat-y',
-    ['repeat-space', 'space'],
-    ['repeat-round', 'round'],
-    'no-repeat',
-  ]],
-  ['utilities', 'bg-', ['background-size'], [
-    'auto',
-    'cover',
-    'contain',
-  ]],
-  ['utilities', '', ['filter'], [
-    ['blur-none', 'blur(0)'],
-    ['filter-none', 'none'],
-  ]],
-  ['utilities', 'border-', ['border-collapse'], [
-    'collapse',
-    'separate',
-  ]],
-  ['utilities', 'rounded-', ['border-radius'], [
-    ['none', '0'],
-    ['full', 'calc(infinity * 1px)'],
-  ]],
-  ['utilities', 'rounded-s-', ['border-start-start-radius', 'border-end-start-radius'], [
-    ['none', '0'],
-    ['full', 'calc(infinity * 1px)'],
-  ]],
-  ['utilities', 'rounded-e-', ['border-start-end-radius', 'border-end-end-radius'], [
-    ['none', '0'],
-    ['full', 'calc(infinity * 1px)'],
-  ]],
-  ['utilities', 'rounded-t-', ['border-top-left-radius', 'border-top-right-radius'], [
-    ['none', '0'],
-    ['full', 'calc(infinity * 1px)'],
-  ]],
-  ['utilities', 'rounded-r-', ['border-top-right-radius', 'border-bottom-right-radius'], [
-    ['none', '0'],
-    ['full', 'calc(infinity * 1px)'],
-  ]],
-  ['utilities', 'rounded-b-', ['border-bottom-right-radius', 'border-bottom-left-radius'], [
-    ['none', '0'],
-    ['full', 'calc(infinity * 1px)'],
-  ]],
-  ['utilities', 'rounded-l-', ['border-top-left-radius', 'border-bottom-left-radius'], [
-    ['none', '0'],
-    ['full', 'calc(infinity * 1px)'],
-  ]],
-  ['utilities', 'rounded-ss-', ['border-start-start-radius'], [
-    ['none', '0'],
-    ['full', 'calc(infinity * 1px)'],
-  ]],
-  ['utilities', 'rounded-se-', ['border-start-end-radius'], [
-    ['none', '0'],
-    ['full', 'calc(infinity * 1px)'],
-  ]],
-  ['utilities', 'rounded-ee-', ['border-end-end-radius'], [
-    ['none', '0'],
-    ['full', 'calc(infinity * 1px)'],
-  ]],
-  ['utilities', 'rounded-es-', ['border-end-start-radius'], [
-    ['none', '0'],
-    ['full', 'calc(infinity * 1px)'],
-  ]],
-  ['utilities', 'rounded-tl-', ['border-top-left-radius'], [
-    ['none', '0'],
-    ['full', 'calc(infinity * 1px)'],
-  ]],
-  ['utilities', 'rounded-tr-', ['border-top-right-radius'], [
-    ['none', '0'],
-    ['full', 'calc(infinity * 1px)'],
-  ]],
-  ['utilities', 'rounded-br-', ['border-bottom-right-radius'], [
-    ['none', '0'],
-    ['full', 'calc(infinity * 1px)'],
-  ]],
-  ['utilities', 'rounded-bl-', ['border-bottom-left-radius'], [
-    ['none', '0'],
-    ['full', 'calc(infinity * 1px)'],
-  ]],
-  ['utilities', 'border-', ['--tw-border-style', 'border-style'], [
-    'solid',
-    'dashed',
-    'dotted',
-    'double',
-    'hidden',
-    'none',
-  ]],
-  ['utilities', 'box-decoration-', ['-webkit-box-decoration-break', 'box-decoration-break'], [
-    'slice',
-    'clone',
-  ]],
-  ['utilities', 'box-', ['box-sizing'], [
-    ['border', 'border-box'],
-    ['content', 'content-box'],
-  ]],
-  ['utilities', 'break-after-', ['break-after'], [
-    'auto',
-    'avoid',
-    'all',
-    'avoid-page',
-    'page',
-    'left',
-    'right',
-    'column',
-  ]],
-  ['utilities', 'break-before-', ['break-before'], [
-    'auto',
-    'avoid',
-    'all',
-    'avoid-page',
-    'page',
-    'left',
-    'right',
-    'column',
-  ]],
-  ['utilities', 'break-inside-', ['break-inside'], [
-    'auto',
-    'avoid',
-    'avoid-page',
-    'avoid-column',
-  ]],
-  ['utilities', 'caption-', ['caption-side'], [
-    'top',
-    'bottom',
-  ]],
-  ['utilities', 'clear-', ['clear'], [
-    ['start', 'inline-start'],
-    ['end', 'inline-end'],
-    'left',
-    'right',
-    'both',
-    'none',
-  ]],
-  ['utilities', 'scheme-', ['color-scheme'], [
-    'normal',
-    'dark',
-    'light',
-    ['light-dark', 'light dark'],
-    ['only-dark', 'only dark'],
-    ['only-light', 'only light'],
-  ]],
-  ['utilities', 'cursor-', ['cursor'], [
-    'auto',
-    'default',
-    'pointer',
-    'wait',
-    'text',
-    'move',
-    'help',
-    'not-allowed',
-    'none',
-    'context-menu',
-    'progress',
-    'cell',
-    'crosshair',
-    'vertical-text',
-    'alias',
-    'copy',
-    'no-drop',
-    'grab',
-    'grabbing',
-    'all-scroll',
-    'col-resize',
-    'row-resize',
-    'n-resize',
-    'e-resize',
-    's-resize',
-    'w-resize',
-    'ne-resize',
-    'nw-resize',
-    'se-resize',
-    'sw-resize',
-    'ew-resize',
-    'ns-resize',
-    'nesw-resize',
-    'nwse-resize',
-    'zoom-in',
-    'zoom-out',
-  ]],
-  ['utilities', 'display-', ['display'], [
-    'block',
-    'inline-block',
-    'inline',
-    'flex',
-    'inline-flex',
-    'table',
-    'inline-table',
-    'table-caption',
-    'table-cell',
-    'table-column',
-    'table-column-group',
-    'table-footer-group',
-    'table-header-group',
-    'table-row-group',
-    'table-row',
-    'flow-root',
-    'grid',
-    'inline-grid',
-    'contents',
-    'list-item',
-    ['hidden', 'none'],
-  ]],
-  ['utilities', 'field-sizing-', ['field-sizing'], [
-    'fixed',
-    'content',
-  ]],
-  ['utilities', 'basis-', ['flex-basis'], [
-    'auto',
-    ['full', '100%'],
-  ]],
-  ['utilities', 'flex-', ['flex'], [
-    ['1', '1 1 0%'],
-    ['auto', '1 1 auto'],
-    ['initial', '0 1 auto'],
-    'none',
-  ]],
-  ['utilities', 'flex-', ['flex-direction'], [
-    'row',
-    'row-reverse',
-    ['col', 'column'],
-    ['col-reverse', 'column-reverse'],
-  ]],
-  ['utilities', 'grow-', ['flex-grow'], [
-    '1',
-    '0',
-  ]],
-  ['utilities', 'shrink-', ['flex-shrink'], [
-    '1',
-    '0',
-  ]],
-  ['utilities', 'flex-', ['flex-wrap'], [
-    'wrap',
-    'wrap-reverse',
-    'nowrap',
-  ]],
-  ['utilities', 'float-', ['float'], [
-    ['start', 'inline-start'],
-    ['end', 'inline-end'],
-    'right',
-    'left',
-    'none',
-  ]],
-  ['utilities', '', ['-webkit-font-smoothing', '-moz-osx-font-smoothing'], [
-    ['antialiased', 'antialiased', 'grayscale'],
-    ['subpixel-antialiased', 'auto'],
-  ]],
-  ['utilities', '', ['font-style'], [
-    'italic',
-    ['not-italic', 'normal'],
-  ]],
-  ['utilities', 'font-', ['font-weight'], [
-    ['black', '900'],
-    ['bold', '700'],
-    ['extrabold', '800'],
-    ['extralight', '200'],
-    ['light', '300'],
-    ['medium', '500'],
-    ['normal', '400'],
-    ['semibold', '600'],
-    ['thin', '100'],
-  ]],
-  ['utilities', 'forced-color-adjust-', ['forced-color-adjust'], [
-    'auto',
-    'none',
-  ]],
-  ['utilities', 'linear-to-', ['--tw-gradient-position'], [
-    ['t', 'to top in oklab'],
-    ['tr', 'to top right in oklab'],
-    ['r', 'to right in oklab'],
-    ['br', 'to bottom right in oklab'],
-    ['b', 'to bottom in oklab'],
-    ['bl', 'to bottom left in oklab'],
-    ['l', 'to left in oklab'],
-    ['tl', 'to top left in oklab'],
-  ]],
-  ['utilities', 'auto-cols-', ['grid-auto-columns'], [
-    'auto',
-    ['min', 'min-content'],
-    ['max', 'max-content'],
-    ['fr', 'minmax(0, 1fr)'],
-  ]],
-  ['utilities', 'grid-flow-', ['grid-auto-flow'], [
-    'row',
-    ['col', 'column'],
-    'dense',
-    ['row-dense', 'row dense'],
-    ['col-dense', 'column dense'],
-  ]],
-  ['utilities', 'auto-rows-', ['grid-auto-rows'], [
-    'auto',
-    ['min', 'min-content'],
-    ['max', 'max-content'],
-    ['fr', 'minmax(0, 1fr)'],
-  ]],
-  ['utilities', 'col-', ['grid-column'], [
-    'auto',
-    ['span-full', '1 / -1'],
-  ]],
-  ['utilities', 'row-', ['grid-row'], [
-    'auto',
-    ['span-full', '1 / -1'],
-  ]],
-  ['utilities', 'grid-cols-', ['grid-template-columns'], [
-    'none',
-    'subgrid',
-  ]],
-  ['utilities', 'grid-rows-', ['grid-template-rows'], [
-    'none',
-    'subgrid',
-  ]],
-  ['utilities', 'h-', ['height'], [
-    'auto',
-    ['full', '100%'],
-    ['screen', '100vh'],
-    ['dvh', '100dvh'],
-    ['dvw', '100dvw'],
-    ['lvh', '100lvh'],
-    ['lvw', '100lvw'],
-    ['svh', '100svh'],
-    ['svw', '100svw'],
-    ['min', 'min-content'],
-    ['max', 'max-content'],
-    ['fit', 'fit-content'],
-    ['lh', '1lh'],
-  ]],
-  ['utilities', 'hyphens-', ['-webkit-hyphens', 'hyphens'], [
-    'none',
-    'manual',
-    'auto',
-  ]],
-  ['utilities', 'top-', ['top'], [
-    ['full', '100%'],
-    'auto',
-  ]],
-  ['utilities', 'right-', ['right'], [
-    ['full', '100%'],
-    'auto',
-  ]],
-  ['utilities', 'bottom-', ['bottom'], [
-    ['full', '100%'],
-    'auto',
-  ]],
-  ['utilities', 'left-', ['left'], [
-    ['full', '100%'],
-    'auto',
-  ]],
-  ['utilities', 'inset-', ['inset'], [
-    ['full', '100%'],
-    'auto',
-  ]],
-  ['utilities', '', ['isolation'], [
-    'isolate',
-    ['isolation-auto', 'auto'],
-  ]],
-  ['utilities', 'justify-', ['justify-content'], [
-    'normal',
-    ['start', 'flex-start'],
-    ['end', 'flex-end'],
-    'center',
-    ['between', 'space-between'],
-    ['around', 'space-around'],
-    ['evenly', 'space-evenly'],
-    'stretch',
-    ['end-safe', 'safe flex-end'],
-    ['center-safe', 'safe center'],
-  ]],
-  ['utilities', 'justify-items-', ['justify-items'], [
-    'start',
-    'end',
-    'center',
-    'stretch',
-    ['end-safe', 'safe end'],
-    ['center-safe', 'safe center'],
-    'normal',
-  ]],
-  ['utilities', 'justify-self-', ['justify-self'], [
-    'auto',
-    'start',
-    'end',
-    'center',
-    'stretch',
-    ['end-safe', 'safe end'],
-    ['center-safe', 'safe center'],
-  ]],
-  ['utilities', '-tracking-', ['letter-spacing'], [
-    ['normal', '-0em'],
-    ['tight', '0.025em'],
-    ['tighter', '0.05em'],
-    ['wide', '-0.025em'],
-    ['wider', '-0.05em'],
-    ['widest', '-0.1em'],
-  ]],
-  ['utilities', 'tracking-', ['letter-spacing'], [
-    ['normal', '0em'],
-    ['tight', '-0.025em'],
-    ['tighter', '-0.05em'],
-    ['wide', '0.025em'],
-    ['wider', '0.05em'],
-    ['widest', '0.1em'],
-  ]],
-  ['utilities', 'line-clamp-', ['overflow', 'display', '-webkit-box-orient', '-webkit-line-clamp'], [
-    ['1', 'hidden', '-webkit-box', 'vertical', '1'],
-    ['2', 'hidden', '-webkit-box', 'vertical', '2'],
-    ['3', 'hidden', '-webkit-box', 'vertical', '3'],
-    ['4', 'hidden', '-webkit-box', 'vertical', '4'],
-    ['5', 'hidden', '-webkit-box', 'vertical', '5'],
-    ['6', 'hidden', '-webkit-box', 'vertical', '6'],
-    ['none', 'visible', 'block', 'horizontal', 'none'],
-  ]],
-  ['utilities', 'leading-', ['line-height'], [
-    ['loose', '2'],
-    ['none', '1'],
-    ['normal', '1.5'],
-    ['relaxed', '1.625'],
-    ['snug', '1.375'],
-    ['tight', '1.25'],
-  ]],
-  ['utilities', 'list-', ['list-style-position'], [
-    'inside',
-    'outside',
-  ]],
-  ['utilities', 'list-', ['list-style-type'], [
-    'decimal',
-    'disc',
-    'none',
-  ]],
-  ['utilities', 'mask-', ['mask-clip'], [
-    ['clip-border', 'border-box'],
-    ['clip-padding', 'padding-box'],
-    ['clip-content', 'content-box'],
-    ['clip-fill', 'fill-box'],
-    ['clip-stroke', 'stroke-box'],
-    ['clip-view', 'view-box'],
-    'no-clip',
-  ]],
-  ['utilities', 'mask-', ['mask-composite'], [
-    'add',
-    'subtract',
-    'intersect',
-    'exclude',
-  ]],
-  ['utilities', 'mask-', ['mask-mode'], [
-    'alpha',
-    'luminance',
-    ['match', 'match-source'],
-  ]],
-  ['utilities', 'mask-origin-', ['mask-origin'], [
-    ['border', 'border-box'],
-    ['padding', 'padding-box'],
-    ['content', 'content-box'],
-    ['fill', 'fill-box'],
-    ['stroke', 'stroke-box'],
-    ['view', 'view-box'],
-  ]],
-  ['utilities', 'mask-', ['mask-position'], [
-    ['top-left', 'top left'],
-    'top',
-    ['top-right', 'top right'],
-    'left',
-    'center',
-    'right',
-    ['bottom-left', 'bottom left'],
-    'bottom',
-    ['bottom-right', 'bottom right'],
-  ]],
-  ['utilities', 'mask-', ['mask-repeat'], [
-    'repeat',
-    'no-repeat',
-    'repeat-x',
-    'repeat-y',
-    ['repeat-space', 'space'],
-    ['repeat-round', 'round'],
-  ]],
-  ['utilities', 'mask-', ['mask-size'], [
-    'auto',
-    'cover',
-    'contain',
-  ]],
-  ['utilities', 'mask-type-', ['mask-type'], [
-    'alpha',
-    'luminance',
-  ]],
-  ['utilities', 'max-h-', ['max-height'], [
-    'none',
-    ['full', '100%'],
-    ['screen', '100vh'],
-    ['dvh', '100dvh'],
-    ['dvw', '100dvw'],
-    ['lvh', '100lvh'],
-    ['lvw', '100lvw'],
-    ['svh', '100svh'],
-    ['svw', '100svw'],
-    ['min', 'min-content'],
-    ['max', 'max-content'],
-    ['fit', 'fit-content'],
-    ['lh', '1lh'],
-  ]],
-  ['utilities', 'max-w-', ['max-width'], [
-    ['full', '100%'],
-    ['screen', '100vw'],
-    ['dvw', '100dvw'],
-    ['dvh', '100dvh'],
-    ['lvw', '100lvw'],
-    ['lvh', '100lvh'],
-    ['svw', '100svw'],
-    ['svh', '100svh'],
-    ['min', 'min-content'],
-    ['max', 'max-content'],
-    ['fit', 'fit-content'],
-    'none',
-  ]],
-  ['utilities', 'min-h-', ['min-height'], [
-    'auto',
-    ['full', '100%'],
-    ['screen', '100vh'],
-    ['dvh', '100dvh'],
-    ['dvw', '100dvw'],
-    ['lvh', '100lvh'],
-    ['lvw', '100lvw'],
-    ['svh', '100svh'],
-    ['svw', '100svw'],
-    ['min', 'min-content'],
-    ['max', 'max-content'],
-    ['fit', 'fit-content'],
-    ['lh', '1lh'],
-  ]],
-  ['utilities', 'min-w-', ['min-width'], [
-    'auto',
-    ['full', '100%'],
-    ['screen', '100vw'],
-    ['dvw', '100dvw'],
-    ['dvh', '100dvh'],
-    ['lvw', '100lvw'],
-    ['lvh', '100lvh'],
-    ['svw', '100svw'],
-    ['svh', '100svh'],
-    ['min', 'min-content'],
-    ['max', 'max-content'],
-    ['fit', 'fit-content'],
-  ]],
-  ['utilities', 'mix-blend-', ['mix-blend-mode'], [
-    'normal',
-    'multiply',
-    'screen',
-    'overlay',
-    'darken',
-    'lighten',
-    'color-dodge',
-    'color-burn',
-    'hard-light',
-    'soft-light',
-    'difference',
-    'exclusion',
-    'hue',
-    'saturation',
-    'color',
-    'luminosity',
-    'plus-darker',
-    'plus-lighter',
-  ]],
-  ['utilities', 'object-', ['object-fit'], [
-    'contain',
-    'cover',
-    'fill',
-    'none',
-    'scale-down',
-  ]],
-  ['utilities', 'object-', ['object-position'], [
-    'bottom',
-    'center',
-    'left',
-    ['left-bottom', 'left bottom'],
-    ['left-top', 'left top'],
-    'right',
-    ['right-bottom', 'right bottom'],
-    ['right-top', 'right top'],
-    'top',
-  ]],
-  ['utilities', '-order-', ['order'], [
-    ['first', '9999'],
-    ['last', '-9999'],
-    ['none', '0'],
-  ]],
-  ['utilities', 'order-', ['order'], [
-    ['first', '-9999'],
-    ['last', '9999'],
-    ['none', '0'],
-  ]],
-  ['utilities', 'outline-', ['outline-style'], [
-    'dashed',
-    'dotted',
-    'double',
-  ]],
-  ['utilities', 'wrap-', ['overflow-wrap'], [
-    'break-word',
-    'anywhere',
-    'normal',
-  ]],
-  ['utilities', 'overflow-', ['overflow'], [
-    'auto',
-    'hidden',
-    'clip',
-    'visible',
-    'scroll',
-  ]],
-  ['utilities', 'overflow-x-', ['overflow-x'], [
-    'auto',
-    'hidden',
-    'clip',
-    'visible',
-    'scroll',
-  ]],
-  ['utilities', 'overflow-y-', ['overflow-y'], [
-    'auto',
-    'hidden',
-    'clip',
-    'visible',
-    'scroll',
-  ]],
-  ['utilities', 'overscroll-', ['overscroll-behavior'], [
-    'auto',
-    'contain',
-    'none',
-  ]],
-  ['utilities', 'overscroll-y-', ['overscroll-behavior-y'], [
-    'auto',
-    'contain',
-    'none',
-  ]],
-  ['utilities', 'overscroll-x-', ['overscroll-behavior-x'], [
-    'auto',
-    'contain',
-    'none',
-  ]],
-  ['utilities', 'place-content-', ['place-content'], [
-    'center',
-    'start',
-    'end',
-    ['between', 'space-between'],
-    ['around', 'space-around'],
-    ['evenly', 'space-evenly'],
-    'baseline',
-    'stretch',
-    ['end-safe', 'safe end'],
-    ['center-safe', 'safe center'],
-  ]],
-  ['utilities', 'place-items-', ['place-items'], [
-    'start',
-    'end',
-    'center',
-    'baseline',
-    'stretch',
-    ['end-safe', 'safe end'],
-    ['center-safe', 'safe center'],
-  ]],
-  ['utilities', 'place-self-', ['place-self'], [
-    'auto',
-    'start',
-    'end',
-    'center',
-    'stretch',
-    ['end-safe', 'safe end'],
-    ['center-safe', 'safe center'],
-  ]],
-  ['utilities', 'pointer-events-', ['pointer-events'], [
-    'auto',
-    'none',
-  ]],
-  ['utilities', '', ['position'], [
-    'static',
-    'fixed',
-    'absolute',
-    'relative',
-    'sticky',
-  ]],
-  ['utilities', 'resize', ['resize'], [
-    ['-none', 'none'],
-    ['', 'both'],
-    ['-y', 'vertical'],
-    ['-x', 'horizontal'],
-  ]],
-  ['utilities', '', ['transform'], [
-    ['rotate-none', 'none'],
-    ['scale-none', 'none'],
-    ['transform-none', 'none'],
-  ]],
-  ['utilities', 'scroll-', ['scroll-behavior'], [
-    'auto',
-    'smooth',
-  ]],
-  ['utilities', 'snap-', ['scroll-snap-align'], [
-    'start',
-    'end',
-    'center',
-    ['align-none', 'none'],
-  ]],
-  ['utilities', 'snap-', ['scroll-snap-stop'], [
-    'normal',
-    'always',
-  ]],
-  ['utilities', 'snap-', ['--tw-scroll-snap-strictness'], [
-    'mandatory',
-    'proximity',
-  ]],
-  ['utilities', 'size-', ['width', 'height'], [
-    'auto',
-    ['full', '100%'],
-    ['dvw', '100dvw'],
-    ['dvh', '100dvh'],
-    ['lvw', '100lvw'],
-    ['lvh', '100lvh'],
-    ['svw', '100svw'],
-    ['svh', '100svh'],
-    ['min', 'min-content'],
-    ['max', 'max-content'],
-    ['fit', 'fit-content'],
-  ]],
-  ['utilities', 'table-', ['table-layout'], [
-    'auto',
-    'fixed',
-  ]],
-  ['utilities', 'text-', ['text-align'], [
-    'left',
-    'center',
-    'right',
-    'justify',
-    'start',
-    'end',
-  ]],
-  ['utilities', 'decoration-', ['text-decoration-color'], [
-    'inherit',
-    ['current', 'currentColor'],
-    'transparent',
-  ]],
-  ['utilities', '', ['text-decoration-line'], [
-    'underline',
-    'overline',
-    'line-through',
-    ['no-underline', 'none'],
-  ]],
-  ['utilities', 'decoration-', ['text-decoration-style'], [
-    'solid',
-    'double',
-    'dotted',
-    'dashed',
-    'wavy',
-  ]],
-  ['utilities', 'decoration-', ['text-decoration-thickness'], [
-    'from-font',
-    'auto',
-  ]],
-  ['utilities', 'text-', ['text-overflow'], [
-    'ellipsis',
-    'clip',
-  ]],
-  ['utilities', '', ['text-transform'], [
-    'uppercase',
-    'lowercase',
-    'capitalize',
-    ['normal-case', 'none'],
-  ]],
-  ['utilities', 'text-', ['text-wrap'], [
-    'wrap',
-    'nowrap',
-    'balance',
-    'pretty',
-  ]],
-  ['utilities', 'touch-', ['touch-action'], [
-    'auto',
-    'none',
-    'pan-x',
-    'pan-left',
-    'pan-right',
-    'pan-y',
-    'pan-up',
-    'pan-down',
-    'pinch-zoom',
-    'manipulation',
-  ]],
-  ['utilities', 'transform-', ['transform-style'], [
-    ['3d', 'preserve-3d'],
-    'flat',
-  ]],
-  ['utilities', 'transition-', ['transition-behavior'], [
-    'normal',
-    ['discrete', 'allow-discrete'],
-  ]],
-  ['utilities', 'transition-', ['--default-transition-property'], [
-    'all',
-    ['colors', 'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to'],
-    'opacity',
-    ['shadow', 'box-shadow'],
-    ['transform', 'transform, translate, scale, rotate'],
-  ]],
-  ['utilities', 'ease-', ['transition-timing-function'], [
-    'linear',
-    'initial',
-  ]],
-  ['utilities', 'select-', ['user-select'], [
-    'none',
-    'text',
-    'all',
-    'auto',
-  ]],
-  ['utilities', 'align-', ['vertical-align'], [
-    'baseline',
-    'top',
-    'middle',
-    'bottom',
-    'text-top',
-    'text-bottom',
-    'sub',
-    'super',
-  ]],
-  ['utilities', '', ['visibility'], [
-    'visible',
-    ['invisible', 'hidden'],
-    'collapse',
-  ]],
-  ['utilities', 'whitespace-', ['white-space'], [
-    'normal',
-    'nowrap',
-    'pre',
-    'pre-line',
-    'pre-wrap',
-    'break-spaces',
-  ]],
-  ['utilities', 'w-', ['width'], [
-    'auto',
-    ['full', '100%'],
-    ['screen', '100vw'],
-    ['dvw', '100dvw'],
-    ['dvh', '100dvh'],
-    ['lvw', '100lvw'],
-    ['lvh', '100lvh'],
-    ['svw', '100svw'],
-    ['svh', '100svh'],
-    ['min', 'min-content'],
-    ['max', 'max-content'],
-    ['fit', 'fit-content'],
-  ]],
-  ['utilities', 'will-change-', ['will-change'], [
-    'auto',
-    ['scroll', 'scroll-position'],
-    'contents',
-    'transform',
-  ]],
-  ['utilities', '', ['word-break'], [
-    'break-all',
-    ['break-keep', 'keep-all'],
-  ]],
-  ['components', 'animate-', ['animation'], [
-    ['spin', 'var(--animate-spin)'],
-    ['ping', 'var(--animate-ping)'],
-    ['pulse', 'var(--animate-pulse)'],
-    ['bounce', 'var(--animate-bounce)'],
-    'none',
-  ]],
-  ['components', 'backdrop-blur-', ['--tw-backdrop-blur', 'backdrop-filter'], [
-    ['xs', 'blur(var(--blur-xs))', 'var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)'],
-    ['sm', 'blur(var(--blur-sm))', 'var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)'],
-    ['md', 'blur(var(--blur-md))', 'var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)'],
-    ['lg', 'blur(var(--blur-lg))', 'var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)'],
-    ['xl', 'blur(var(--blur-xl))', 'var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)'],
-    ['2xl', 'blur(var(--blur-2xl))', 'var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)'],
-    ['3xl', 'blur(var(--blur-3xl))', 'var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)'],
-    ['none', 'blur(0)', 'var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)'],
-  ]],
-  ['components', 'blur-', ['filter'], [
-    ['xs', 'blur(var(--blur-xs))'],
-    ['sm', 'blur(var(--blur-sm))'],
-    ['md', 'blur(var(--blur-md))'],
-    ['lg', 'blur(var(--blur-lg))'],
-    ['xl', 'blur(var(--blur-xl))'],
-    ['2xl', 'blur(var(--blur-2xl))'],
-    ['3xl', 'blur(var(--blur-3xl))'],
-  ]],
-  ['components', 'rounded-', ['border-radius'], [
-    ['xs', 'var(--radius-xs)'],
-    ['sm', 'var(--radius-sm)'],
-    ['md', 'var(--radius-md)'],
-    ['lg', 'var(--radius-lg)'],
-    ['xl', 'var(--radius-xl)'],
-    ['2xl', 'var(--radius-2xl)'],
-    ['3xl', 'var(--radius-3xl)'],
-    ['4xl', 'var(--radius-4xl)'],
-  ]],
-  ['components', 'rounded-s-', ['border-start-start-radius', 'border-end-start-radius'], [
-    ['xs', 'var(--radius-xs)'],
-    ['sm', 'var(--radius-sm)'],
-    ['md', 'var(--radius-md)'],
-    ['lg', 'var(--radius-lg)'],
-    ['xl', 'var(--radius-xl)'],
-    ['2xl', 'var(--radius-2xl)'],
-    ['3xl', 'var(--radius-3xl)'],
-    ['4xl', 'var(--radius-4xl)'],
-  ]],
-  ['components', 'rounded-e-', ['border-start-end-radius', 'border-end-end-radius'], [
-    ['xs', 'var(--radius-xs)'],
-    ['sm', 'var(--radius-sm)'],
-    ['md', 'var(--radius-md)'],
-    ['lg', 'var(--radius-lg)'],
-    ['xl', 'var(--radius-xl)'],
-    ['2xl', 'var(--radius-2xl)'],
-    ['3xl', 'var(--radius-3xl)'],
-    ['4xl', 'var(--radius-4xl)'],
-  ]],
-  ['components', 'rounded-t-', ['border-top-left-radius', 'border-top-right-radius'], [
-    ['xs', 'var(--radius-xs)'],
-    ['sm', 'var(--radius-sm)'],
-    ['md', 'var(--radius-md)'],
-    ['lg', 'var(--radius-lg)'],
-    ['xl', 'var(--radius-xl)'],
-    ['2xl', 'var(--radius-2xl)'],
-    ['3xl', 'var(--radius-3xl)'],
-    ['4xl', 'var(--radius-4xl)'],
-  ]],
-  ['components', 'rounded-r-', ['border-top-right-radius', 'border-bottom-right-radius'], [
-    ['xs', 'var(--radius-xs)'],
-    ['sm', 'var(--radius-sm)'],
-    ['md', 'var(--radius-md)'],
-    ['lg', 'var(--radius-lg)'],
-    ['xl', 'var(--radius-xl)'],
-    ['2xl', 'var(--radius-2xl)'],
-    ['3xl', 'var(--radius-3xl)'],
-    ['4xl', 'var(--radius-4xl)'],
-  ]],
-  ['components', 'rounded-b-', ['border-bottom-right-radius', 'border-bottom-left-radius'], [
-    ['xs', 'var(--radius-xs)'],
-    ['sm', 'var(--radius-sm)'],
-    ['md', 'var(--radius-md)'],
-    ['lg', 'var(--radius-lg)'],
-    ['xl', 'var(--radius-xl)'],
-    ['2xl', 'var(--radius-2xl)'],
-    ['3xl', 'var(--radius-3xl)'],
-    ['4xl', 'var(--radius-4xl)'],
-  ]],
-  ['components', 'rounded-l-', ['border-top-left-radius', 'border-bottom-left-radius'], [
-    ['xs', 'var(--radius-xs)'],
-    ['sm', 'var(--radius-sm)'],
-    ['md', 'var(--radius-md)'],
-    ['lg', 'var(--radius-lg)'],
-    ['xl', 'var(--radius-xl)'],
-    ['2xl', 'var(--radius-2xl)'],
-    ['3xl', 'var(--radius-3xl)'],
-    ['4xl', 'var(--radius-4xl)'],
-  ]],
-  ['components', 'rounded-ss-', ['border-start-start-radius'], [
-    ['xs', 'var(--radius-xs)'],
-    ['sm', 'var(--radius-sm)'],
-    ['md', 'var(--radius-md)'],
-    ['lg', 'var(--radius-lg)'],
-    ['xl', 'var(--radius-xl)'],
-    ['2xl', 'var(--radius-2xl)'],
-    ['3xl', 'var(--radius-3xl)'],
-    ['4xl', 'var(--radius-4xl)'],
-  ]],
-  ['components', 'rounded-se-', ['border-start-end-radius'], [
-    ['xs', 'var(--radius-xs)'],
-    ['sm', 'var(--radius-sm)'],
-    ['md', 'var(--radius-md)'],
-    ['lg', 'var(--radius-lg)'],
-    ['xl', 'var(--radius-xl)'],
-    ['2xl', 'var(--radius-2xl)'],
-    ['3xl', 'var(--radius-3xl)'],
-    ['4xl', 'var(--radius-4xl)'],
-  ]],
-  ['components', 'rounded-ee-', ['border-end-end-radius'], [
-    ['xs', 'var(--radius-xs)'],
-    ['sm', 'var(--radius-sm)'],
-    ['md', 'var(--radius-md)'],
-    ['lg', 'var(--radius-lg)'],
-    ['xl', 'var(--radius-xl)'],
-    ['2xl', 'var(--radius-2xl)'],
-    ['3xl', 'var(--radius-3xl)'],
-    ['4xl', 'var(--radius-4xl)'],
-  ]],
-  ['components', 'rounded-es-', ['border-end-start-radius'], [
-    ['xs', 'var(--radius-xs)'],
-    ['sm', 'var(--radius-sm)'],
-    ['md', 'var(--radius-md)'],
-    ['lg', 'var(--radius-lg)'],
-    ['xl', 'var(--radius-xl)'],
-    ['2xl', 'var(--radius-2xl)'],
-    ['3xl', 'var(--radius-3xl)'],
-    ['4xl', 'var(--radius-4xl)'],
-  ]],
-  ['components', 'rounded-tl-', ['border-top-left-radius'], [
-    ['xs', 'var(--radius-xs)'],
-    ['sm', 'var(--radius-sm)'],
-    ['md', 'var(--radius-md)'],
-    ['lg', 'var(--radius-lg)'],
-    ['xl', 'var(--radius-xl)'],
-    ['2xl', 'var(--radius-2xl)'],
-    ['3xl', 'var(--radius-3xl)'],
-    ['4xl', 'var(--radius-4xl)'],
-  ]],
-  ['components', 'rounded-tr-', ['border-top-right-radius'], [
-    ['xs', 'var(--radius-xs)'],
-    ['sm', 'var(--radius-sm)'],
-    ['md', 'var(--radius-md)'],
-    ['lg', 'var(--radius-lg)'],
-    ['xl', 'var(--radius-xl)'],
-    ['2xl', 'var(--radius-2xl)'],
-    ['3xl', 'var(--radius-3xl)'],
-    ['4xl', 'var(--radius-4xl)'],
-  ]],
-  ['components', 'rounded-br-', ['border-bottom-right-radius'], [
-    ['xs', 'var(--radius-xs)'],
-    ['sm', 'var(--radius-sm)'],
-    ['md', 'var(--radius-md)'],
-    ['lg', 'var(--radius-lg)'],
-    ['xl', 'var(--radius-xl)'],
-    ['2xl', 'var(--radius-2xl)'],
-    ['3xl', 'var(--radius-3xl)'],
-    ['4xl', 'var(--radius-4xl)'],
-  ]],
-  ['components', 'rounded-bl-', ['border-bottom-left-radius'], [
-    ['xs', 'var(--radius-xs)'],
-    ['sm', 'var(--radius-sm)'],
-    ['md', 'var(--radius-md)'],
-    ['lg', 'var(--radius-lg)'],
-    ['xl', 'var(--radius-xl)'],
-    ['2xl', 'var(--radius-2xl)'],
-    ['3xl', 'var(--radius-3xl)'],
-    ['4xl', 'var(--radius-4xl)'],
-  ]],
-  ['components', 'shadow-', ['--tw-shadow'], [
-    ['2xs', '0 1px var(--tw-shadow-color)'],
-    ['xs', '0 1px 2px 0 var(--tw-shadow-color)'],
-    ['sm', '0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color)'],
-    ['md', '0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color)'],
-    ['lg', '0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color)'],
-    ['xl', '0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color)'],
-  ]],
-  ['components', 'columns-', ['columns'], [
-    ['3xs', 'var(--container-3xs)'],
-    ['2xs', 'var(--container-2xs)'],
-    ['xs', 'var(--container-xs)'],
-    ['sm', 'var(--container-sm)'],
-    ['md', 'var(--container-md)'],
-    ['lg', 'var(--container-lg)'],
-    ['xl', 'var(--container-xl)'],
-    ['2xl', 'var(--container-2xl)'],
-    ['3xl', 'var(--container-3xl)'],
-    ['4xl', 'var(--container-4xl)'],
-    ['5xl', 'var(--container-5xl)'],
-    ['6xl', 'var(--container-6xl)'],
-    ['7xl', 'var(--container-7xl)'],
-  ]],
-  ['components', 'basis-', ['flex-basis'], [
-    ['3xs', 'var(--container-3xs)'],
-    ['2xs', 'var(--container-2xs)'],
-    ['xs', 'var(--container-xs)'],
-    ['sm', 'var(--container-sm)'],
-    ['md', 'var(--container-md)'],
-    ['lg', 'var(--container-lg)'],
-    ['xl', 'var(--container-xl)'],
-    ['2xl', 'var(--container-2xl)'],
-    ['3xl', 'var(--container-3xl)'],
-    ['4xl', 'var(--container-4xl)'],
-    ['5xl', 'var(--container-5xl)'],
-    ['6xl', 'var(--container-6xl)'],
-    ['7xl', 'var(--container-7xl)'],
-  ]],
-  ['components', 'font-', ['font-family'], [
-    ['mono', 'var(--font-family-mono)'],
-    ['sans', 'var(--font-family-sans)'],
-    ['serif', 'var(--font-family-serif)'],
-  ]],
-  ['components', 'text-', ['font-size', 'line-height'], [
-    ['xs', 'var(--font-size-xs)', 'var(--font-size-xs--line-height)'],
-    ['sm', 'var(--font-size-sm)', 'var(--font-size-sm--line-height)'],
-    ['base', 'var(--font-size-base)', 'var(--font-size-base--line-height)'],
-    ['lg', 'var(--font-size-lg)', 'var(--font-size-lg--line-height)'],
-    ['xl', 'var(--font-size-xl)', 'var(--font-size-xl--line-height)'],
-    ['2xl', 'var(--font-size-2xl)', 'var(--font-size-2xl--line-height)'],
-    ['3xl', 'var(--font-size-3xl)', 'var(--font-size-3xl--line-height)'],
-    ['4xl', 'var(--font-size-4xl)', 'var(--font-size-4xl--line-height)'],
-    ['5xl', 'var(--font-size-5xl)', 'var(--font-size-5xl--line-height)'],
-    ['6xl', 'var(--font-size-6xl)', 'var(--font-size-6xl--line-height)'],
-    ['7xl', 'var(--font-size-7xl)', 'var(--font-size-7xl--line-height)'],
-    ['8xl', 'var(--font-size-8xl)', 'var(--font-size-8xl--line-height)'],
-    ['9xl', 'var(--font-size-9xl)', 'var(--font-size-9xl--line-height)'],
-  ]],
-  ['components', '', ['--tw-numeric-figure', 'font-variant-numeric'], [
-    ['lining-nums', 'lining-nums', 'var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)'],
-    ['oldstyle-nums', 'oldstyle-nums', 'var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)'],
-  ]],
-  ['components', '', ['--tw-numeric-spacing', 'font-variant-numeric'], [
-    ['proportional-nums', 'proportional-nums', 'var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)'],
-    ['tabular-nums', 'tabular-nums', 'var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)'],
-  ]],
-  ['components', '', ['--tw-numeric-fraction', 'font-variant-numeric'], [
-    ['diagonal-fractions', 'diagonal-fractions', 'var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)'],
-    ['stacked-fractions', 'stacked-fractions', 'var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)'],
-  ]],
-  ['components', 'max-w-', ['max-width'], [
-    ['3xs', 'var(--container-3xs)'],
-    ['2xs', 'var(--container-2xs)'],
-    ['xs', 'var(--container-xs)'],
-    ['sm', 'var(--container-sm)'],
-    ['md', 'var(--container-md)'],
-    ['lg', 'var(--container-lg)'],
-    ['xl', 'var(--container-xl)'],
-    ['2xl', 'var(--container-2xl)'],
-    ['3xl', 'var(--container-3xl)'],
-    ['4xl', 'var(--container-4xl)'],
-    ['5xl', 'var(--container-5xl)'],
-    ['6xl', 'var(--container-6xl)'],
-    ['7xl', 'var(--container-7xl)'],
-  ]],
-  ['components', 'min-w-', ['min-width'], [
-    ['3xs', 'var(--container-3xs)'],
-    ['2xs', 'var(--container-2xs)'],
-    ['xs', 'var(--container-xs)'],
-    ['sm', 'var(--container-sm)'],
-    ['md', 'var(--container-md)'],
-    ['lg', 'var(--container-lg)'],
-    ['xl', 'var(--container-xl)'],
-    ['2xl', 'var(--container-2xl)'],
-    ['3xl', 'var(--container-3xl)'],
-    ['4xl', 'var(--container-4xl)'],
-    ['5xl', 'var(--container-5xl)'],
-    ['6xl', 'var(--container-6xl)'],
-    ['7xl', 'var(--container-7xl)'],
-  ]],
-  ['components', 'perspective-', ['perspective'], [
-    ['dramatic', 'var(--perspective-dramatic)'],
-    ['near', 'var(--perspective-near)'],
-    ['normal', 'var(--perspective-normal)'],
-    ['midrange', 'var(--perspective-midrange)'],
-    ['distant', 'var(--perspective-distant)'],
-  ]],
-  ['components', 'snap-', ['scroll-snap-type'], [
-    ['x', 'x var(--tw-scroll-snap-strictness)'],
-    ['y', 'y var(--tw-scroll-snap-strictness)'],
-    ['both', 'both var(--tw-scroll-snap-strictness)'],
-  ]],
-  ['components', 'transform-', ['transform'], [
-    ['gpu', 'translateZ(0) var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,)'],
-    ['cpu', 'var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,)'],
-  ]],
-  ['components', 'ease-', ['transition-timing-function'], [
-    ['in', 'var(--ease-in)'],
-    ['out', 'var(--ease-out)'],
-    ['in-out', 'var(--ease-in-out)'],
-  ]],
-  ['components', 'w-', ['width'], [
-    ['3xs', 'var(--container-3xs)'],
-    ['2xs', 'var(--container-2xs)'],
-    ['xs', 'var(--container-xs)'],
-    ['sm', 'var(--container-sm)'],
-    ['md', 'var(--container-md)'],
-    ['lg', 'var(--container-lg)'],
-    ['xl', 'var(--container-xl)'],
-    ['2xl', 'var(--container-2xl)'],
-    ['3xl', 'var(--container-3xl)'],
-    ['4xl', 'var(--container-4xl)'],
-    ['5xl', 'var(--container-5xl)'],
-    ['6xl', 'var(--container-6xl)'],
-    ['7xl', 'var(--container-7xl)'],
-  ]],
+	[
+		'utilities',
+		'content-',
+		['align-content'],
+		[
+			'normal',
+			'center',
+			['start', 'flex-start'],
+			['end', 'flex-end'],
+			['between', 'space-between'],
+			['around', 'space-around'],
+			['evenly', 'space-evenly'],
+			'baseline',
+			'stretch'
+		]
+	],
+	[
+		'utilities',
+		'items-',
+		['align-items'],
+		[
+			['start', 'flex-start'],
+			['end', 'flex-end'],
+			'center',
+			'stretch',
+			'baseline',
+			['end-safe', 'safe flex-end'],
+			['center-safe', 'safe center'],
+			['baseline-last', 'last baseline']
+		]
+	],
+	[
+		'utilities',
+		'self-',
+		['align-self'],
+		[
+			'auto',
+			['start', 'flex-start'],
+			['end', 'flex-end'],
+			'center',
+			'stretch',
+			'baseline',
+			['end-safe', 'safe flex-end'],
+			['center-safe', 'safe center'],
+			['baseline-last', 'last baseline']
+		]
+	],
+	['utilities', 'appearance-', ['appearance'], ['none', 'auto']],
+	['utilities', 'aspect-', ['aspect-ratio'], [['square', '1/1'], 'auto']],
+	['utilities', 'backface-', ['backface-visibility'], ['hidden', 'visible']],
+	['utilities', 'bg-', ['background-attachment'], ['fixed', 'local', 'scroll']],
+	[
+		'utilities',
+		'bg-blend-',
+		['background-blend-mode'],
+		[
+			'normal',
+			'multiply',
+			'screen',
+			'overlay',
+			'darken',
+			'lighten',
+			'color-dodge',
+			'color-burn',
+			'hard-light',
+			'soft-light',
+			'difference',
+			'exclusion',
+			'hue',
+			'saturation',
+			'color',
+			'luminosity'
+		]
+	],
+	[
+		'utilities',
+		'bg-clip-',
+		['background-clip'],
+		[['border', 'border-box'], ['padding', 'padding-box'], ['content', 'content-box'], 'text']
+	],
+	[
+		'utilities',
+		'bg-origin-',
+		['background-origin'],
+		[
+			['border', 'border-box'],
+			['padding', 'padding-box'],
+			['content', 'content-box']
+		]
+	],
+	[
+		'utilities',
+		'bg-',
+		['background-position'],
+		[
+			['top-left', 'top left'],
+			'top',
+			['top-right', 'top right'],
+			'left',
+			'center',
+			'right',
+			['bottom-left', 'bottom left'],
+			'bottom',
+			['bottom-right', 'bottom right']
+		]
+	],
+	[
+		'utilities',
+		'bg-',
+		['background-repeat'],
+		[
+			'repeat',
+			'repeat-x',
+			'repeat-y',
+			['repeat-space', 'space'],
+			['repeat-round', 'round'],
+			'no-repeat'
+		]
+	],
+	['utilities', 'bg-', ['background-size'], ['auto', 'cover', 'contain']],
+	[
+		'utilities',
+		'',
+		['filter'],
+		[
+			['blur-none', 'blur(0)'],
+			['filter-none', 'none']
+		]
+	],
+	['utilities', 'border-', ['border-collapse'], ['collapse', 'separate']],
+	[
+		'utilities',
+		'rounded-',
+		['border-radius'],
+		[
+			['none', '0'],
+			['full', 'calc(infinity * 1px)']
+		]
+	],
+	[
+		'utilities',
+		'rounded-s-',
+		['border-start-start-radius', 'border-end-start-radius'],
+		[
+			['none', '0'],
+			['full', 'calc(infinity * 1px)']
+		]
+	],
+	[
+		'utilities',
+		'rounded-e-',
+		['border-start-end-radius', 'border-end-end-radius'],
+		[
+			['none', '0'],
+			['full', 'calc(infinity * 1px)']
+		]
+	],
+	[
+		'utilities',
+		'rounded-t-',
+		['border-top-left-radius', 'border-top-right-radius'],
+		[
+			['none', '0'],
+			['full', 'calc(infinity * 1px)']
+		]
+	],
+	[
+		'utilities',
+		'rounded-r-',
+		['border-top-right-radius', 'border-bottom-right-radius'],
+		[
+			['none', '0'],
+			['full', 'calc(infinity * 1px)']
+		]
+	],
+	[
+		'utilities',
+		'rounded-b-',
+		['border-bottom-right-radius', 'border-bottom-left-radius'],
+		[
+			['none', '0'],
+			['full', 'calc(infinity * 1px)']
+		]
+	],
+	[
+		'utilities',
+		'rounded-l-',
+		['border-top-left-radius', 'border-bottom-left-radius'],
+		[
+			['none', '0'],
+			['full', 'calc(infinity * 1px)']
+		]
+	],
+	[
+		'utilities',
+		'rounded-ss-',
+		['border-start-start-radius'],
+		[
+			['none', '0'],
+			['full', 'calc(infinity * 1px)']
+		]
+	],
+	[
+		'utilities',
+		'rounded-se-',
+		['border-start-end-radius'],
+		[
+			['none', '0'],
+			['full', 'calc(infinity * 1px)']
+		]
+	],
+	[
+		'utilities',
+		'rounded-ee-',
+		['border-end-end-radius'],
+		[
+			['none', '0'],
+			['full', 'calc(infinity * 1px)']
+		]
+	],
+	[
+		'utilities',
+		'rounded-es-',
+		['border-end-start-radius'],
+		[
+			['none', '0'],
+			['full', 'calc(infinity * 1px)']
+		]
+	],
+	[
+		'utilities',
+		'rounded-tl-',
+		['border-top-left-radius'],
+		[
+			['none', '0'],
+			['full', 'calc(infinity * 1px)']
+		]
+	],
+	[
+		'utilities',
+		'rounded-tr-',
+		['border-top-right-radius'],
+		[
+			['none', '0'],
+			['full', 'calc(infinity * 1px)']
+		]
+	],
+	[
+		'utilities',
+		'rounded-br-',
+		['border-bottom-right-radius'],
+		[
+			['none', '0'],
+			['full', 'calc(infinity * 1px)']
+		]
+	],
+	[
+		'utilities',
+		'rounded-bl-',
+		['border-bottom-left-radius'],
+		[
+			['none', '0'],
+			['full', 'calc(infinity * 1px)']
+		]
+	],
+	[
+		'utilities',
+		'border-',
+		['--tw-border-style', 'border-style'],
+		['solid', 'dashed', 'dotted', 'double', 'hidden', 'none']
+	],
+	[
+		'utilities',
+		'box-decoration-',
+		['-webkit-box-decoration-break', 'box-decoration-break'],
+		['slice', 'clone']
+	],
+	[
+		'utilities',
+		'box-',
+		['box-sizing'],
+		[
+			['border', 'border-box'],
+			['content', 'content-box']
+		]
+	],
+	[
+		'utilities',
+		'break-after-',
+		['break-after'],
+		['auto', 'avoid', 'all', 'avoid-page', 'page', 'left', 'right', 'column']
+	],
+	[
+		'utilities',
+		'break-before-',
+		['break-before'],
+		['auto', 'avoid', 'all', 'avoid-page', 'page', 'left', 'right', 'column']
+	],
+	['utilities', 'break-inside-', ['break-inside'], ['auto', 'avoid', 'avoid-page', 'avoid-column']],
+	['utilities', 'caption-', ['caption-side'], ['top', 'bottom']],
+	[
+		'utilities',
+		'clear-',
+		['clear'],
+		[['start', 'inline-start'], ['end', 'inline-end'], 'left', 'right', 'both', 'none']
+	],
+	[
+		'utilities',
+		'scheme-',
+		['color-scheme'],
+		[
+			'normal',
+			'dark',
+			'light',
+			['light-dark', 'light dark'],
+			['only-dark', 'only dark'],
+			['only-light', 'only light']
+		]
+	],
+	[
+		'utilities',
+		'cursor-',
+		['cursor'],
+		[
+			'auto',
+			'default',
+			'pointer',
+			'wait',
+			'text',
+			'move',
+			'help',
+			'not-allowed',
+			'none',
+			'context-menu',
+			'progress',
+			'cell',
+			'crosshair',
+			'vertical-text',
+			'alias',
+			'copy',
+			'no-drop',
+			'grab',
+			'grabbing',
+			'all-scroll',
+			'col-resize',
+			'row-resize',
+			'n-resize',
+			'e-resize',
+			's-resize',
+			'w-resize',
+			'ne-resize',
+			'nw-resize',
+			'se-resize',
+			'sw-resize',
+			'ew-resize',
+			'ns-resize',
+			'nesw-resize',
+			'nwse-resize',
+			'zoom-in',
+			'zoom-out'
+		]
+	],
+	[
+		'utilities',
+		'display-',
+		['display'],
+		[
+			'block',
+			'inline-block',
+			'inline',
+			'flex',
+			'inline-flex',
+			'table',
+			'inline-table',
+			'table-caption',
+			'table-cell',
+			'table-column',
+			'table-column-group',
+			'table-footer-group',
+			'table-header-group',
+			'table-row-group',
+			'table-row',
+			'flow-root',
+			'grid',
+			'inline-grid',
+			'contents',
+			'list-item',
+			['hidden', 'none']
+		]
+	],
+	['utilities', 'field-sizing-', ['field-sizing'], ['fixed', 'content']],
+	['utilities', 'basis-', ['flex-basis'], ['auto', ['full', '100%']]],
+	[
+		'utilities',
+		'flex-',
+		['flex'],
+		[['1', '1 1 0%'], ['auto', '1 1 auto'], ['initial', '0 1 auto'], 'none']
+	],
+	[
+		'utilities',
+		'flex-',
+		['flex-direction'],
+		['row', 'row-reverse', ['col', 'column'], ['col-reverse', 'column-reverse']]
+	],
+	['utilities', 'grow-', ['flex-grow'], ['1', '0']],
+	['utilities', 'shrink-', ['flex-shrink'], ['1', '0']],
+	['utilities', 'flex-', ['flex-wrap'], ['wrap', 'wrap-reverse', 'nowrap']],
+	[
+		'utilities',
+		'float-',
+		['float'],
+		[['start', 'inline-start'], ['end', 'inline-end'], 'right', 'left', 'none']
+	],
+	[
+		'utilities',
+		'',
+		['-webkit-font-smoothing', '-moz-osx-font-smoothing'],
+		[
+			['antialiased', 'antialiased', 'grayscale'],
+			['subpixel-antialiased', 'auto']
+		]
+	],
+	['utilities', '', ['font-style'], ['italic', ['not-italic', 'normal']]],
+	[
+		'utilities',
+		'font-',
+		['font-weight'],
+		[
+			['black', '900'],
+			['bold', '700'],
+			['extrabold', '800'],
+			['extralight', '200'],
+			['light', '300'],
+			['medium', '500'],
+			['normal', '400'],
+			['semibold', '600'],
+			['thin', '100']
+		]
+	],
+	['utilities', 'forced-color-adjust-', ['forced-color-adjust'], ['auto', 'none']],
+	[
+		'utilities',
+		'linear-to-',
+		['--tw-gradient-position'],
+		[
+			['t', 'to top in oklab'],
+			['tr', 'to top right in oklab'],
+			['r', 'to right in oklab'],
+			['br', 'to bottom right in oklab'],
+			['b', 'to bottom in oklab'],
+			['bl', 'to bottom left in oklab'],
+			['l', 'to left in oklab'],
+			['tl', 'to top left in oklab']
+		]
+	],
+	[
+		'utilities',
+		'auto-cols-',
+		['grid-auto-columns'],
+		['auto', ['min', 'min-content'], ['max', 'max-content'], ['fr', 'minmax(0, 1fr)']]
+	],
+	[
+		'utilities',
+		'grid-flow-',
+		['grid-auto-flow'],
+		['row', ['col', 'column'], 'dense', ['row-dense', 'row dense'], ['col-dense', 'column dense']]
+	],
+	[
+		'utilities',
+		'auto-rows-',
+		['grid-auto-rows'],
+		['auto', ['min', 'min-content'], ['max', 'max-content'], ['fr', 'minmax(0, 1fr)']]
+	],
+	['utilities', 'col-', ['grid-column'], ['auto', ['span-full', '1 / -1']]],
+	['utilities', 'row-', ['grid-row'], ['auto', ['span-full', '1 / -1']]],
+	['utilities', 'grid-cols-', ['grid-template-columns'], ['none', 'subgrid']],
+	['utilities', 'grid-rows-', ['grid-template-rows'], ['none', 'subgrid']],
+	[
+		'utilities',
+		'h-',
+		['height'],
+		[
+			'auto',
+			['full', '100%'],
+			['screen', '100vh'],
+			['dvh', '100dvh'],
+			['dvw', '100dvw'],
+			['lvh', '100lvh'],
+			['lvw', '100lvw'],
+			['svh', '100svh'],
+			['svw', '100svw'],
+			['min', 'min-content'],
+			['max', 'max-content'],
+			['fit', 'fit-content'],
+			['lh', '1lh']
+		]
+	],
+	['utilities', 'hyphens-', ['-webkit-hyphens', 'hyphens'], ['none', 'manual', 'auto']],
+	['utilities', 'top-', ['top'], [['full', '100%'], 'auto']],
+	['utilities', 'right-', ['right'], [['full', '100%'], 'auto']],
+	['utilities', 'bottom-', ['bottom'], [['full', '100%'], 'auto']],
+	['utilities', 'left-', ['left'], [['full', '100%'], 'auto']],
+	['utilities', 'inset-', ['inset'], [['full', '100%'], 'auto']],
+	['utilities', '', ['isolation'], ['isolate', ['isolation-auto', 'auto']]],
+	[
+		'utilities',
+		'justify-',
+		['justify-content'],
+		[
+			'normal',
+			['start', 'flex-start'],
+			['end', 'flex-end'],
+			'center',
+			['between', 'space-between'],
+			['around', 'space-around'],
+			['evenly', 'space-evenly'],
+			'stretch',
+			['end-safe', 'safe flex-end'],
+			['center-safe', 'safe center']
+		]
+	],
+	[
+		'utilities',
+		'justify-items-',
+		['justify-items'],
+		[
+			'start',
+			'end',
+			'center',
+			'stretch',
+			['end-safe', 'safe end'],
+			['center-safe', 'safe center'],
+			'normal'
+		]
+	],
+	[
+		'utilities',
+		'justify-self-',
+		['justify-self'],
+		[
+			'auto',
+			'start',
+			'end',
+			'center',
+			'stretch',
+			['end-safe', 'safe end'],
+			['center-safe', 'safe center']
+		]
+	],
+	[
+		'utilities',
+		'-tracking-',
+		['letter-spacing'],
+		[
+			['normal', '-0em'],
+			['tight', '0.025em'],
+			['tighter', '0.05em'],
+			['wide', '-0.025em'],
+			['wider', '-0.05em'],
+			['widest', '-0.1em']
+		]
+	],
+	[
+		'utilities',
+		'tracking-',
+		['letter-spacing'],
+		[
+			['normal', '0em'],
+			['tight', '-0.025em'],
+			['tighter', '-0.05em'],
+			['wide', '0.025em'],
+			['wider', '0.05em'],
+			['widest', '0.1em']
+		]
+	],
+	[
+		'utilities',
+		'line-clamp-',
+		['overflow', 'display', '-webkit-box-orient', '-webkit-line-clamp'],
+		[
+			['1', 'hidden', '-webkit-box', 'vertical', '1'],
+			['2', 'hidden', '-webkit-box', 'vertical', '2'],
+			['3', 'hidden', '-webkit-box', 'vertical', '3'],
+			['4', 'hidden', '-webkit-box', 'vertical', '4'],
+			['5', 'hidden', '-webkit-box', 'vertical', '5'],
+			['6', 'hidden', '-webkit-box', 'vertical', '6'],
+			['none', 'visible', 'block', 'horizontal', 'none']
+		]
+	],
+	[
+		'utilities',
+		'leading-',
+		['line-height'],
+		[
+			['loose', '2'],
+			['none', '1'],
+			['normal', '1.5'],
+			['relaxed', '1.625'],
+			['snug', '1.375'],
+			['tight', '1.25']
+		]
+	],
+	['utilities', 'list-', ['list-style-position'], ['inside', 'outside']],
+	['utilities', 'list-', ['list-style-type'], ['decimal', 'disc', 'none']],
+	[
+		'utilities',
+		'mask-',
+		['mask-clip'],
+		[
+			['clip-border', 'border-box'],
+			['clip-padding', 'padding-box'],
+			['clip-content', 'content-box'],
+			['clip-fill', 'fill-box'],
+			['clip-stroke', 'stroke-box'],
+			['clip-view', 'view-box'],
+			'no-clip'
+		]
+	],
+	['utilities', 'mask-', ['mask-composite'], ['add', 'subtract', 'intersect', 'exclude']],
+	['utilities', 'mask-', ['mask-mode'], ['alpha', 'luminance', ['match', 'match-source']]],
+	[
+		'utilities',
+		'mask-origin-',
+		['mask-origin'],
+		[
+			['border', 'border-box'],
+			['padding', 'padding-box'],
+			['content', 'content-box'],
+			['fill', 'fill-box'],
+			['stroke', 'stroke-box'],
+			['view', 'view-box']
+		]
+	],
+	[
+		'utilities',
+		'mask-',
+		['mask-position'],
+		[
+			['top-left', 'top left'],
+			'top',
+			['top-right', 'top right'],
+			'left',
+			'center',
+			'right',
+			['bottom-left', 'bottom left'],
+			'bottom',
+			['bottom-right', 'bottom right']
+		]
+	],
+	[
+		'utilities',
+		'mask-',
+		['mask-repeat'],
+		[
+			'repeat',
+			'no-repeat',
+			'repeat-x',
+			'repeat-y',
+			['repeat-space', 'space'],
+			['repeat-round', 'round']
+		]
+	],
+	['utilities', 'mask-', ['mask-size'], ['auto', 'cover', 'contain']],
+	['utilities', 'mask-type-', ['mask-type'], ['alpha', 'luminance']],
+	[
+		'utilities',
+		'max-h-',
+		['max-height'],
+		[
+			'none',
+			['full', '100%'],
+			['screen', '100vh'],
+			['dvh', '100dvh'],
+			['dvw', '100dvw'],
+			['lvh', '100lvh'],
+			['lvw', '100lvw'],
+			['svh', '100svh'],
+			['svw', '100svw'],
+			['min', 'min-content'],
+			['max', 'max-content'],
+			['fit', 'fit-content'],
+			['lh', '1lh']
+		]
+	],
+	[
+		'utilities',
+		'max-w-',
+		['max-width'],
+		[
+			['full', '100%'],
+			['screen', '100vw'],
+			['dvw', '100dvw'],
+			['dvh', '100dvh'],
+			['lvw', '100lvw'],
+			['lvh', '100lvh'],
+			['svw', '100svw'],
+			['svh', '100svh'],
+			['min', 'min-content'],
+			['max', 'max-content'],
+			['fit', 'fit-content'],
+			'none'
+		]
+	],
+	[
+		'utilities',
+		'min-h-',
+		['min-height'],
+		[
+			'auto',
+			['full', '100%'],
+			['screen', '100vh'],
+			['dvh', '100dvh'],
+			['dvw', '100dvw'],
+			['lvh', '100lvh'],
+			['lvw', '100lvw'],
+			['svh', '100svh'],
+			['svw', '100svw'],
+			['min', 'min-content'],
+			['max', 'max-content'],
+			['fit', 'fit-content'],
+			['lh', '1lh']
+		]
+	],
+	[
+		'utilities',
+		'min-w-',
+		['min-width'],
+		[
+			'auto',
+			['full', '100%'],
+			['screen', '100vw'],
+			['dvw', '100dvw'],
+			['dvh', '100dvh'],
+			['lvw', '100lvw'],
+			['lvh', '100lvh'],
+			['svw', '100svw'],
+			['svh', '100svh'],
+			['min', 'min-content'],
+			['max', 'max-content'],
+			['fit', 'fit-content']
+		]
+	],
+	[
+		'utilities',
+		'mix-blend-',
+		['mix-blend-mode'],
+		[
+			'normal',
+			'multiply',
+			'screen',
+			'overlay',
+			'darken',
+			'lighten',
+			'color-dodge',
+			'color-burn',
+			'hard-light',
+			'soft-light',
+			'difference',
+			'exclusion',
+			'hue',
+			'saturation',
+			'color',
+			'luminosity',
+			'plus-darker',
+			'plus-lighter'
+		]
+	],
+	['utilities', 'object-', ['object-fit'], ['contain', 'cover', 'fill', 'none', 'scale-down']],
+	[
+		'utilities',
+		'object-',
+		['object-position'],
+		[
+			'bottom',
+			'center',
+			'left',
+			['left-bottom', 'left bottom'],
+			['left-top', 'left top'],
+			'right',
+			['right-bottom', 'right bottom'],
+			['right-top', 'right top'],
+			'top'
+		]
+	],
+	[
+		'utilities',
+		'-order-',
+		['order'],
+		[
+			['first', '9999'],
+			['last', '-9999'],
+			['none', '0']
+		]
+	],
+	[
+		'utilities',
+		'order-',
+		['order'],
+		[
+			['first', '-9999'],
+			['last', '9999'],
+			['none', '0']
+		]
+	],
+	['utilities', 'outline-', ['outline-style'], ['dashed', 'dotted', 'double']],
+	['utilities', 'wrap-', ['overflow-wrap'], ['break-word', 'anywhere', 'normal']],
+	['utilities', 'overflow-', ['overflow'], ['auto', 'hidden', 'clip', 'visible', 'scroll']],
+	['utilities', 'overflow-x-', ['overflow-x'], ['auto', 'hidden', 'clip', 'visible', 'scroll']],
+	['utilities', 'overflow-y-', ['overflow-y'], ['auto', 'hidden', 'clip', 'visible', 'scroll']],
+	['utilities', 'overscroll-', ['overscroll-behavior'], ['auto', 'contain', 'none']],
+	['utilities', 'overscroll-y-', ['overscroll-behavior-y'], ['auto', 'contain', 'none']],
+	['utilities', 'overscroll-x-', ['overscroll-behavior-x'], ['auto', 'contain', 'none']],
+	[
+		'utilities',
+		'place-content-',
+		['place-content'],
+		[
+			'center',
+			'start',
+			'end',
+			['between', 'space-between'],
+			['around', 'space-around'],
+			['evenly', 'space-evenly'],
+			'baseline',
+			'stretch',
+			['end-safe', 'safe end'],
+			['center-safe', 'safe center']
+		]
+	],
+	[
+		'utilities',
+		'place-items-',
+		['place-items'],
+		[
+			'start',
+			'end',
+			'center',
+			'baseline',
+			'stretch',
+			['end-safe', 'safe end'],
+			['center-safe', 'safe center']
+		]
+	],
+	[
+		'utilities',
+		'place-self-',
+		['place-self'],
+		[
+			'auto',
+			'start',
+			'end',
+			'center',
+			'stretch',
+			['end-safe', 'safe end'],
+			['center-safe', 'safe center']
+		]
+	],
+	['utilities', 'pointer-events-', ['pointer-events'], ['auto', 'none']],
+	['utilities', '', ['position'], ['static', 'fixed', 'absolute', 'relative', 'sticky']],
+	[
+		'utilities',
+		'resize',
+		['resize'],
+		[
+			['-none', 'none'],
+			['', 'both'],
+			['-y', 'vertical'],
+			['-x', 'horizontal']
+		]
+	],
+	[
+		'utilities',
+		'',
+		['transform'],
+		[
+			['rotate-none', 'none'],
+			['scale-none', 'none'],
+			['transform-none', 'none']
+		]
+	],
+	['utilities', 'scroll-', ['scroll-behavior'], ['auto', 'smooth']],
+	['utilities', 'snap-', ['scroll-snap-align'], ['start', 'end', 'center', ['align-none', 'none']]],
+	['utilities', 'snap-', ['scroll-snap-stop'], ['normal', 'always']],
+	['utilities', 'snap-', ['--tw-scroll-snap-strictness'], ['mandatory', 'proximity']],
+	[
+		'utilities',
+		'size-',
+		['width', 'height'],
+		[
+			'auto',
+			['full', '100%'],
+			['dvw', '100dvw'],
+			['dvh', '100dvh'],
+			['lvw', '100lvw'],
+			['lvh', '100lvh'],
+			['svw', '100svw'],
+			['svh', '100svh'],
+			['min', 'min-content'],
+			['max', 'max-content'],
+			['fit', 'fit-content']
+		]
+	],
+	['utilities', 'table-', ['table-layout'], ['auto', 'fixed']],
+	['utilities', 'text-', ['text-align'], ['left', 'center', 'right', 'justify', 'start', 'end']],
+	[
+		'utilities',
+		'decoration-',
+		['text-decoration-color'],
+		['inherit', ['current', 'currentColor'], 'transparent']
+	],
+	[
+		'utilities',
+		'',
+		['text-decoration-line'],
+		['underline', 'overline', 'line-through', ['no-underline', 'none']]
+	],
+	[
+		'utilities',
+		'decoration-',
+		['text-decoration-style'],
+		['solid', 'double', 'dotted', 'dashed', 'wavy']
+	],
+	['utilities', 'decoration-', ['text-decoration-thickness'], ['from-font', 'auto']],
+	['utilities', 'text-', ['text-overflow'], ['ellipsis', 'clip']],
+	[
+		'utilities',
+		'',
+		['text-transform'],
+		['uppercase', 'lowercase', 'capitalize', ['normal-case', 'none']]
+	],
+	['utilities', 'text-', ['text-wrap'], ['wrap', 'nowrap', 'balance', 'pretty']],
+	[
+		'utilities',
+		'touch-',
+		['touch-action'],
+		[
+			'auto',
+			'none',
+			'pan-x',
+			'pan-left',
+			'pan-right',
+			'pan-y',
+			'pan-up',
+			'pan-down',
+			'pinch-zoom',
+			'manipulation'
+		]
+	],
+	['utilities', 'transform-', ['transform-style'], [['3d', 'preserve-3d'], 'flat']],
+	['utilities', 'transition-', ['transition-behavior'], ['normal', ['discrete', 'allow-discrete']]],
+	[
+		'utilities',
+		'transition-',
+		['--default-transition-property'],
+		[
+			'all',
+			[
+				'colors',
+				'color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to'
+			],
+			'opacity',
+			['shadow', 'box-shadow'],
+			['transform', 'transform, translate, scale, rotate']
+		]
+	],
+	['utilities', 'ease-', ['transition-timing-function'], ['linear', 'initial']],
+	['utilities', 'select-', ['user-select'], ['none', 'text', 'all', 'auto']],
+	[
+		'utilities',
+		'align-',
+		['vertical-align'],
+		['baseline', 'top', 'middle', 'bottom', 'text-top', 'text-bottom', 'sub', 'super']
+	],
+	['utilities', '', ['visibility'], ['visible', ['invisible', 'hidden'], 'collapse']],
+	[
+		'utilities',
+		'whitespace-',
+		['white-space'],
+		['normal', 'nowrap', 'pre', 'pre-line', 'pre-wrap', 'break-spaces']
+	],
+	[
+		'utilities',
+		'w-',
+		['width'],
+		[
+			'auto',
+			['full', '100%'],
+			['screen', '100vw'],
+			['dvw', '100dvw'],
+			['dvh', '100dvh'],
+			['lvw', '100lvw'],
+			['lvh', '100lvh'],
+			['svw', '100svw'],
+			['svh', '100svh'],
+			['min', 'min-content'],
+			['max', 'max-content'],
+			['fit', 'fit-content']
+		]
+	],
+	[
+		'utilities',
+		'will-change-',
+		['will-change'],
+		['auto', ['scroll', 'scroll-position'], 'contents', 'transform']
+	],
+	['utilities', '', ['word-break'], ['break-all', ['break-keep', 'keep-all']]],
+	[
+		'components',
+		'animate-',
+		['animation'],
+		[
+			['spin', 'var(--animate-spin)'],
+			['ping', 'var(--animate-ping)'],
+			['pulse', 'var(--animate-pulse)'],
+			['bounce', 'var(--animate-bounce)'],
+			'none'
+		]
+	],
+	[
+		'components',
+		'backdrop-blur-',
+		['--tw-backdrop-blur', 'backdrop-filter'],
+		[
+			[
+				'xs',
+				'blur(var(--blur-xs))',
+				'var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)'
+			],
+			[
+				'sm',
+				'blur(var(--blur-sm))',
+				'var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)'
+			],
+			[
+				'md',
+				'blur(var(--blur-md))',
+				'var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)'
+			],
+			[
+				'lg',
+				'blur(var(--blur-lg))',
+				'var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)'
+			],
+			[
+				'xl',
+				'blur(var(--blur-xl))',
+				'var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)'
+			],
+			[
+				'2xl',
+				'blur(var(--blur-2xl))',
+				'var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)'
+			],
+			[
+				'3xl',
+				'blur(var(--blur-3xl))',
+				'var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)'
+			],
+			[
+				'none',
+				'blur(0)',
+				'var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,)'
+			]
+		]
+	],
+	[
+		'components',
+		'blur-',
+		['filter'],
+		[
+			['xs', 'blur(var(--blur-xs))'],
+			['sm', 'blur(var(--blur-sm))'],
+			['md', 'blur(var(--blur-md))'],
+			['lg', 'blur(var(--blur-lg))'],
+			['xl', 'blur(var(--blur-xl))'],
+			['2xl', 'blur(var(--blur-2xl))'],
+			['3xl', 'blur(var(--blur-3xl))']
+		]
+	],
+	[
+		'components',
+		'rounded-',
+		['border-radius'],
+		[
+			['xs', 'var(--radius-xs)'],
+			['sm', 'var(--radius-sm)'],
+			['md', 'var(--radius-md)'],
+			['lg', 'var(--radius-lg)'],
+			['xl', 'var(--radius-xl)'],
+			['2xl', 'var(--radius-2xl)'],
+			['3xl', 'var(--radius-3xl)'],
+			['4xl', 'var(--radius-4xl)']
+		]
+	],
+	[
+		'components',
+		'rounded-s-',
+		['border-start-start-radius', 'border-end-start-radius'],
+		[
+			['xs', 'var(--radius-xs)'],
+			['sm', 'var(--radius-sm)'],
+			['md', 'var(--radius-md)'],
+			['lg', 'var(--radius-lg)'],
+			['xl', 'var(--radius-xl)'],
+			['2xl', 'var(--radius-2xl)'],
+			['3xl', 'var(--radius-3xl)'],
+			['4xl', 'var(--radius-4xl)']
+		]
+	],
+	[
+		'components',
+		'rounded-e-',
+		['border-start-end-radius', 'border-end-end-radius'],
+		[
+			['xs', 'var(--radius-xs)'],
+			['sm', 'var(--radius-sm)'],
+			['md', 'var(--radius-md)'],
+			['lg', 'var(--radius-lg)'],
+			['xl', 'var(--radius-xl)'],
+			['2xl', 'var(--radius-2xl)'],
+			['3xl', 'var(--radius-3xl)'],
+			['4xl', 'var(--radius-4xl)']
+		]
+	],
+	[
+		'components',
+		'rounded-t-',
+		['border-top-left-radius', 'border-top-right-radius'],
+		[
+			['xs', 'var(--radius-xs)'],
+			['sm', 'var(--radius-sm)'],
+			['md', 'var(--radius-md)'],
+			['lg', 'var(--radius-lg)'],
+			['xl', 'var(--radius-xl)'],
+			['2xl', 'var(--radius-2xl)'],
+			['3xl', 'var(--radius-3xl)'],
+			['4xl', 'var(--radius-4xl)']
+		]
+	],
+	[
+		'components',
+		'rounded-r-',
+		['border-top-right-radius', 'border-bottom-right-radius'],
+		[
+			['xs', 'var(--radius-xs)'],
+			['sm', 'var(--radius-sm)'],
+			['md', 'var(--radius-md)'],
+			['lg', 'var(--radius-lg)'],
+			['xl', 'var(--radius-xl)'],
+			['2xl', 'var(--radius-2xl)'],
+			['3xl', 'var(--radius-3xl)'],
+			['4xl', 'var(--radius-4xl)']
+		]
+	],
+	[
+		'components',
+		'rounded-b-',
+		['border-bottom-right-radius', 'border-bottom-left-radius'],
+		[
+			['xs', 'var(--radius-xs)'],
+			['sm', 'var(--radius-sm)'],
+			['md', 'var(--radius-md)'],
+			['lg', 'var(--radius-lg)'],
+			['xl', 'var(--radius-xl)'],
+			['2xl', 'var(--radius-2xl)'],
+			['3xl', 'var(--radius-3xl)'],
+			['4xl', 'var(--radius-4xl)']
+		]
+	],
+	[
+		'components',
+		'rounded-l-',
+		['border-top-left-radius', 'border-bottom-left-radius'],
+		[
+			['xs', 'var(--radius-xs)'],
+			['sm', 'var(--radius-sm)'],
+			['md', 'var(--radius-md)'],
+			['lg', 'var(--radius-lg)'],
+			['xl', 'var(--radius-xl)'],
+			['2xl', 'var(--radius-2xl)'],
+			['3xl', 'var(--radius-3xl)'],
+			['4xl', 'var(--radius-4xl)']
+		]
+	],
+	[
+		'components',
+		'rounded-ss-',
+		['border-start-start-radius'],
+		[
+			['xs', 'var(--radius-xs)'],
+			['sm', 'var(--radius-sm)'],
+			['md', 'var(--radius-md)'],
+			['lg', 'var(--radius-lg)'],
+			['xl', 'var(--radius-xl)'],
+			['2xl', 'var(--radius-2xl)'],
+			['3xl', 'var(--radius-3xl)'],
+			['4xl', 'var(--radius-4xl)']
+		]
+	],
+	[
+		'components',
+		'rounded-se-',
+		['border-start-end-radius'],
+		[
+			['xs', 'var(--radius-xs)'],
+			['sm', 'var(--radius-sm)'],
+			['md', 'var(--radius-md)'],
+			['lg', 'var(--radius-lg)'],
+			['xl', 'var(--radius-xl)'],
+			['2xl', 'var(--radius-2xl)'],
+			['3xl', 'var(--radius-3xl)'],
+			['4xl', 'var(--radius-4xl)']
+		]
+	],
+	[
+		'components',
+		'rounded-ee-',
+		['border-end-end-radius'],
+		[
+			['xs', 'var(--radius-xs)'],
+			['sm', 'var(--radius-sm)'],
+			['md', 'var(--radius-md)'],
+			['lg', 'var(--radius-lg)'],
+			['xl', 'var(--radius-xl)'],
+			['2xl', 'var(--radius-2xl)'],
+			['3xl', 'var(--radius-3xl)'],
+			['4xl', 'var(--radius-4xl)']
+		]
+	],
+	[
+		'components',
+		'rounded-es-',
+		['border-end-start-radius'],
+		[
+			['xs', 'var(--radius-xs)'],
+			['sm', 'var(--radius-sm)'],
+			['md', 'var(--radius-md)'],
+			['lg', 'var(--radius-lg)'],
+			['xl', 'var(--radius-xl)'],
+			['2xl', 'var(--radius-2xl)'],
+			['3xl', 'var(--radius-3xl)'],
+			['4xl', 'var(--radius-4xl)']
+		]
+	],
+	[
+		'components',
+		'rounded-tl-',
+		['border-top-left-radius'],
+		[
+			['xs', 'var(--radius-xs)'],
+			['sm', 'var(--radius-sm)'],
+			['md', 'var(--radius-md)'],
+			['lg', 'var(--radius-lg)'],
+			['xl', 'var(--radius-xl)'],
+			['2xl', 'var(--radius-2xl)'],
+			['3xl', 'var(--radius-3xl)'],
+			['4xl', 'var(--radius-4xl)']
+		]
+	],
+	[
+		'components',
+		'rounded-tr-',
+		['border-top-right-radius'],
+		[
+			['xs', 'var(--radius-xs)'],
+			['sm', 'var(--radius-sm)'],
+			['md', 'var(--radius-md)'],
+			['lg', 'var(--radius-lg)'],
+			['xl', 'var(--radius-xl)'],
+			['2xl', 'var(--radius-2xl)'],
+			['3xl', 'var(--radius-3xl)'],
+			['4xl', 'var(--radius-4xl)']
+		]
+	],
+	[
+		'components',
+		'rounded-br-',
+		['border-bottom-right-radius'],
+		[
+			['xs', 'var(--radius-xs)'],
+			['sm', 'var(--radius-sm)'],
+			['md', 'var(--radius-md)'],
+			['lg', 'var(--radius-lg)'],
+			['xl', 'var(--radius-xl)'],
+			['2xl', 'var(--radius-2xl)'],
+			['3xl', 'var(--radius-3xl)'],
+			['4xl', 'var(--radius-4xl)']
+		]
+	],
+	[
+		'components',
+		'rounded-bl-',
+		['border-bottom-left-radius'],
+		[
+			['xs', 'var(--radius-xs)'],
+			['sm', 'var(--radius-sm)'],
+			['md', 'var(--radius-md)'],
+			['lg', 'var(--radius-lg)'],
+			['xl', 'var(--radius-xl)'],
+			['2xl', 'var(--radius-2xl)'],
+			['3xl', 'var(--radius-3xl)'],
+			['4xl', 'var(--radius-4xl)']
+		]
+	],
+	[
+		'components',
+		'shadow-',
+		['--tw-shadow'],
+		[
+			['2xs', '0 1px var(--tw-shadow-color)'],
+			['xs', '0 1px 2px 0 var(--tw-shadow-color)'],
+			['sm', '0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color)'],
+			['md', '0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color)'],
+			['lg', '0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color)'],
+			['xl', '0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color)']
+		]
+	],
+	[
+		'components',
+		'columns-',
+		['columns'],
+		[
+			['3xs', 'var(--container-3xs)'],
+			['2xs', 'var(--container-2xs)'],
+			['xs', 'var(--container-xs)'],
+			['sm', 'var(--container-sm)'],
+			['md', 'var(--container-md)'],
+			['lg', 'var(--container-lg)'],
+			['xl', 'var(--container-xl)'],
+			['2xl', 'var(--container-2xl)'],
+			['3xl', 'var(--container-3xl)'],
+			['4xl', 'var(--container-4xl)'],
+			['5xl', 'var(--container-5xl)'],
+			['6xl', 'var(--container-6xl)'],
+			['7xl', 'var(--container-7xl)']
+		]
+	],
+	[
+		'components',
+		'basis-',
+		['flex-basis'],
+		[
+			['3xs', 'var(--container-3xs)'],
+			['2xs', 'var(--container-2xs)'],
+			['xs', 'var(--container-xs)'],
+			['sm', 'var(--container-sm)'],
+			['md', 'var(--container-md)'],
+			['lg', 'var(--container-lg)'],
+			['xl', 'var(--container-xl)'],
+			['2xl', 'var(--container-2xl)'],
+			['3xl', 'var(--container-3xl)'],
+			['4xl', 'var(--container-4xl)'],
+			['5xl', 'var(--container-5xl)'],
+			['6xl', 'var(--container-6xl)'],
+			['7xl', 'var(--container-7xl)']
+		]
+	],
+	[
+		'components',
+		'font-',
+		['font-family'],
+		[
+			['mono', 'var(--font-family-mono)'],
+			['sans', 'var(--font-family-sans)'],
+			['serif', 'var(--font-family-serif)']
+		]
+	],
+	[
+		'components',
+		'text-',
+		['font-size', 'line-height'],
+		[
+			['xs', 'var(--font-size-xs)', 'var(--font-size-xs--line-height)'],
+			['sm', 'var(--font-size-sm)', 'var(--font-size-sm--line-height)'],
+			['base', 'var(--font-size-base)', 'var(--font-size-base--line-height)'],
+			['lg', 'var(--font-size-lg)', 'var(--font-size-lg--line-height)'],
+			['xl', 'var(--font-size-xl)', 'var(--font-size-xl--line-height)'],
+			['2xl', 'var(--font-size-2xl)', 'var(--font-size-2xl--line-height)'],
+			['3xl', 'var(--font-size-3xl)', 'var(--font-size-3xl--line-height)'],
+			['4xl', 'var(--font-size-4xl)', 'var(--font-size-4xl--line-height)'],
+			['5xl', 'var(--font-size-5xl)', 'var(--font-size-5xl--line-height)'],
+			['6xl', 'var(--font-size-6xl)', 'var(--font-size-6xl--line-height)'],
+			['7xl', 'var(--font-size-7xl)', 'var(--font-size-7xl--line-height)'],
+			['8xl', 'var(--font-size-8xl)', 'var(--font-size-8xl--line-height)'],
+			['9xl', 'var(--font-size-9xl)', 'var(--font-size-9xl--line-height)']
+		]
+	],
+	[
+		'components',
+		'',
+		['--tw-numeric-figure', 'font-variant-numeric'],
+		[
+			[
+				'lining-nums',
+				'lining-nums',
+				'var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)'
+			],
+			[
+				'oldstyle-nums',
+				'oldstyle-nums',
+				'var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)'
+			]
+		]
+	],
+	[
+		'components',
+		'',
+		['--tw-numeric-spacing', 'font-variant-numeric'],
+		[
+			[
+				'proportional-nums',
+				'proportional-nums',
+				'var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)'
+			],
+			[
+				'tabular-nums',
+				'tabular-nums',
+				'var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)'
+			]
+		]
+	],
+	[
+		'components',
+		'',
+		['--tw-numeric-fraction', 'font-variant-numeric'],
+		[
+			[
+				'diagonal-fractions',
+				'diagonal-fractions',
+				'var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)'
+			],
+			[
+				'stacked-fractions',
+				'stacked-fractions',
+				'var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)'
+			]
+		]
+	],
+	[
+		'components',
+		'max-w-',
+		['max-width'],
+		[
+			['3xs', 'var(--container-3xs)'],
+			['2xs', 'var(--container-2xs)'],
+			['xs', 'var(--container-xs)'],
+			['sm', 'var(--container-sm)'],
+			['md', 'var(--container-md)'],
+			['lg', 'var(--container-lg)'],
+			['xl', 'var(--container-xl)'],
+			['2xl', 'var(--container-2xl)'],
+			['3xl', 'var(--container-3xl)'],
+			['4xl', 'var(--container-4xl)'],
+			['5xl', 'var(--container-5xl)'],
+			['6xl', 'var(--container-6xl)'],
+			['7xl', 'var(--container-7xl)']
+		]
+	],
+	[
+		'components',
+		'min-w-',
+		['min-width'],
+		[
+			['3xs', 'var(--container-3xs)'],
+			['2xs', 'var(--container-2xs)'],
+			['xs', 'var(--container-xs)'],
+			['sm', 'var(--container-sm)'],
+			['md', 'var(--container-md)'],
+			['lg', 'var(--container-lg)'],
+			['xl', 'var(--container-xl)'],
+			['2xl', 'var(--container-2xl)'],
+			['3xl', 'var(--container-3xl)'],
+			['4xl', 'var(--container-4xl)'],
+			['5xl', 'var(--container-5xl)'],
+			['6xl', 'var(--container-6xl)'],
+			['7xl', 'var(--container-7xl)']
+		]
+	],
+	[
+		'components',
+		'perspective-',
+		['perspective'],
+		[
+			['dramatic', 'var(--perspective-dramatic)'],
+			['near', 'var(--perspective-near)'],
+			['normal', 'var(--perspective-normal)'],
+			['midrange', 'var(--perspective-midrange)'],
+			['distant', 'var(--perspective-distant)']
+		]
+	],
+	[
+		'components',
+		'snap-',
+		['scroll-snap-type'],
+		[
+			['x', 'x var(--tw-scroll-snap-strictness)'],
+			['y', 'y var(--tw-scroll-snap-strictness)'],
+			['both', 'both var(--tw-scroll-snap-strictness)']
+		]
+	],
+	[
+		'components',
+		'transform-',
+		['transform'],
+		[
+			[
+				'gpu',
+				'translateZ(0) var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,)'
+			],
+			[
+				'cpu',
+				'var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,)'
+			]
+		]
+	],
+	[
+		'components',
+		'ease-',
+		['transition-timing-function'],
+		[
+			['in', 'var(--ease-in)'],
+			['out', 'var(--ease-out)'],
+			['in-out', 'var(--ease-in-out)']
+		]
+	],
+	[
+		'components',
+		'w-',
+		['width'],
+		[
+			['3xs', 'var(--container-3xs)'],
+			['2xs', 'var(--container-2xs)'],
+			['xs', 'var(--container-xs)'],
+			['sm', 'var(--container-sm)'],
+			['md', 'var(--container-md)'],
+			['lg', 'var(--container-lg)'],
+			['xl', 'var(--container-xl)'],
+			['2xl', 'var(--container-2xl)'],
+			['3xl', 'var(--container-3xl)'],
+			['4xl', 'var(--container-4xl)'],
+			['5xl', 'var(--container-5xl)'],
+			['6xl', 'var(--container-6xl)'],
+			['7xl', 'var(--container-7xl)']
+		]
+	]
 ];
 
 const LITERAL_RULES: any[] = [
-  {
-    layer: 'styles',
-    selector: 'accent',
-    properties: ['accent-color'],
-    dark: true,
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'accent/o',
-    properties: ['accent-color'],
-    values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
-    placeholders: { '{var}': 'accent', '{var2}': 'accent-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'animate',
-    properties: ['animation'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'aspect',
-    properties: ['aspect-ratio'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'backdrop-blur',
-    properties: ['backdrop-filter'],
-    values: ['blur(var({var}))'],
-    placeholders: { '{var}': 'backdrop-blur' },
-  },
-  {
-    layer: 'styles',
-    selector: 'backdrop-brightness',
-    properties: ['backdrop-filter'],
-    values: ['brightness(var({var}))'],
-    placeholders: { '{var}': 'backdrop-brightness' },
-  },
-  {
-    layer: 'styles',
-    selector: 'backdrop-contrast',
-    properties: ['backdrop-filter'],
-    values: ['contrast(var({var}))'],
-    placeholders: { '{var}': 'backdrop-contrast' },
-  },
-  {
-    layer: 'styles',
-    selector: 'backdrop-filter',
-    properties: ['backdrop-filter'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'backdrop-grayscale',
-    properties: ['backdrop-filter'],
-    values: ['grayscale(var({var}))'],
-    placeholders: { '{var}': 'backdrop-grayscale' },
-  },
-  {
-    layer: 'styles',
-    selector: 'backdrop-hue-rotate',
-    properties: ['backdrop-filter'],
-    values: ['hue-rotate(var({var}))'],
-    placeholders: { '{var}': 'backdrop-hue-rotate' },
-  },
-  {
-    layer: 'styles',
-    selector: 'backdrop-invert',
-    properties: ['backdrop-filter'],
-    values: ['invert(var({var}))'],
-    placeholders: { '{var}': 'backdrop-invert' },
-  },
-  {
-    layer: 'styles',
-    selector: 'backdrop-opacity',
-    properties: ['backdrop-filter'],
-    values: ['opacity(var({var}))'],
-    placeholders: { '{var}': 'backdrop-opacity' },
-  },
-  {
-    layer: 'styles',
-    selector: 'backdrop-saturate',
-    properties: ['backdrop-filter'],
-    values: ['saturate(var({var}))'],
-    placeholders: { '{var}': 'backdrop-saturate' },
-  },
-  {
-    layer: 'styles',
-    selector: 'backdrop-sepia',
-    properties: ['backdrop-filter'],
-    values: ['sepia(var({var}))'],
-    placeholders: { '{var}': 'backdrop-sepia' },
-  },
-  {
-    layer: 'styles',
-    selector: 'bg',
-    properties: ['background-color'],
-    dark: true,
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'bg/o',
-    properties: ['background-color'],
-    values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
-    placeholders: { '{var}': 'bg', '{var2}': 'bg-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border',
-    properties: ['border-color'],
-    dark: true,
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-t',
-    properties: ['border-top-color'],
-    dark: true,
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-r',
-    properties: ['border-right-color'],
-    dark: true,
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-b',
-    properties: ['border-bottom-color'],
-    dark: true,
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-l',
-    properties: ['border-left-color'],
-    dark: true,
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-s',
-    properties: ['border-inline-start-color'],
-    dark: true,
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-e',
-    properties: ['border-inline-end-color'],
-    dark: true,
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-x',
-    properties: ['border-inline-color'],
-    dark: true,
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-y',
-    properties: ['border-block-color'],
-    dark: true,
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'bg-image',
-    properties: ['background-image'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'bg-position',
-    properties: ['background-position'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'bg-size',
-    properties: ['background-size'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'blur',
-    properties: ['filter'],
-    values: ['blur(var({var}))'],
-    placeholders: { '{var}': 'blur' },
-  },
-  {
-    layer: 'styles',
-    selector: 'border/o',
-    properties: ['border-color'],
-    values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
-    placeholders: { '{var}': 'border', '{var2}': 'border-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-t/o',
-    properties: ['border-top-color'],
-    values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
-    placeholders: { '{var}': 'border-t', '{var2}': 'border-t-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-r/o',
-    properties: ['border-right-color'],
-    values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
-    placeholders: { '{var}': 'border-r', '{var2}': 'border-r-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-b/o',
-    properties: ['border-bottom-color'],
-    values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
-    placeholders: { '{var}': 'border-b', '{var2}': 'border-b-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-l/o',
-    properties: ['border-left-color'],
-    values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
-    placeholders: { '{var}': 'border-l', '{var2}': 'border-l-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-s/o',
-    properties: ['border-inline-start-color'],
-    values: ['color-mix( in oklab, var({var}) var({var2}, 100%), transparent )'],
-    placeholders: { '{var}': 'border-s', '{var2}': 'border-s-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-e/o',
-    properties: ['border-inline-end-color'],
-    values: ['color-mix( in oklab, var({var}) var({var2}, 100%), transparent )'],
-    placeholders: { '{var}': 'border-e', '{var2}': 'border-e-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-x/o',
-    properties: ['border-inline-color'],
-    values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
-    placeholders: { '{var}': 'border-x', '{var2}': 'border-x-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-y/o',
-    properties: ['border-block-color'],
-    values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
-    placeholders: { '{var}': 'border-y', '{var2}': 'border-y-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-w',
-    properties: ['border-width'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-t-w',
-    properties: ['border-top-width'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-r-w',
-    properties: ['border-right-width'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-b-w',
-    properties: ['border-bottom-width'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-l-w',
-    properties: ['border-left-width'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-s-w',
-    properties: ['border-inline-start-width'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-e-w',
-    properties: ['border-inline-end-width'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-x-w',
-    properties: ['border-inline-width'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-y-w',
-    properties: ['border-block-width'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'rounded',
-    properties: ['border-radius'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'rounded-s',
-    properties: ['border-start-start-radius', 'border-end-start-radius'],
-    values: ['var({var})', 'var({var})'],
-    placeholders: { '{var}': 'rounded-s' },
-  },
-  {
-    layer: 'styles',
-    selector: 'rounded-e',
-    properties: ['border-start-end-radius', 'border-end-end-radius'],
-    values: ['var({var})', 'var({var})'],
-    placeholders: { '{var}': 'rounded-e' },
-  },
-  {
-    layer: 'styles',
-    selector: 'rounded-t',
-    properties: ['border-top-left-radius', 'border-top-right-radius'],
-    values: ['var({var})', 'var({var})'],
-    placeholders: { '{var}': 'rounded-t' },
-  },
-  {
-    layer: 'styles',
-    selector: 'rounded-r',
-    properties: ['border-top-right-radius', 'border-bottom-right-radius'],
-    values: ['var({var})', 'var({var})'],
-    placeholders: { '{var}': 'rounded-r' },
-  },
-  {
-    layer: 'styles',
-    selector: 'rounded-b',
-    properties: ['border-bottom-right-radius', 'border-bottom-left-radius'],
-    values: ['var({var})', 'var({var})'],
-    placeholders: { '{var}': 'rounded-b' },
-  },
-  {
-    layer: 'styles',
-    selector: 'rounded-l',
-    properties: ['border-top-left-radius', 'border-bottom-left-radius'],
-    values: ['var({var})', 'var({var})'],
-    placeholders: { '{var}': 'rounded-l' },
-  },
-  {
-    layer: 'styles',
-    selector: 'rounded-ss',
-    properties: ['border-start-start-radius'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'rounded-se',
-    properties: ['border-start-end-radius'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'rounded-ee',
-    properties: ['border-end-end-radius'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'rounded-es',
-    properties: ['border-end-start-radius'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'rounded-tl',
-    properties: ['border-top-left-radius'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'rounded-tr',
-    properties: ['border-top-right-radius'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'rounded-br',
-    properties: ['border-bottom-right-radius'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'rounded-bl',
-    properties: ['border-bottom-left-radius'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-spacing',
-    properties: ['border-spacing'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'border-spacing' },
-  },
-  {
-    layer: 'styles',
-    selector: '[border-spacing]',
-    properties: ['border-spacing'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'border-spacing-x',
-    properties: ['--tw-border-spacing-x', 'border-spacing'],
-    values: ['calc(var(--spacing) * var({var}))', 'var(--tw-border-spacing-x) var(--tw-border-spacing-y)'],
-    placeholders: { '{var}': 'border-spacing-x' },
-  },
-  {
-    layer: 'styles',
-    selector: '[border-spacing-x]',
-    properties: ['--tw-border-spacing-x', 'border-spacing'],
-    values: ['var({var})', 'var(--tw-border-spacing-x) var(--tw-border-spacing-y)'],
-    placeholders: { '{var}': 'border-spacing-x' },
-  },
-  {
-    layer: 'styles',
-    selector: 'border-spacing-y',
-    properties: ['--tw-border-spacing-y', 'border-spacing'],
-    values: ['calc(var(--spacing) * var({var}))', 'var(--tw-border-spacing-x) var(--tw-border-spacing-y)'],
-    placeholders: { '{var}': 'border-spacing-y' },
-  },
-  {
-    layer: 'styles',
-    selector: '[border-spacing-y]',
-    properties: ['--tw-border-spacing-y', 'border-spacing'],
-    values: ['var({var})', 'var(--tw-border-spacing-x) var(--tw-border-spacing-y)'],
-    placeholders: { '{var}': 'border-spacing-y' },
-  },
-  {
-    layer: 'styles',
-    selector: 'bottom',
-    properties: ['bottom'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'bottom' },
-  },
-  {
-    layer: 'styles',
-    selector: '[bottom]',
-    properties: ['bottom'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'shadow',
-    properties: ['--tw-shadow-color', '--tw-shadow', 'box-shadow'],
-    values: ['var({var}, rgb(0 0 0 / 0.1))', '0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color)', 'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)'],
-    placeholders: { '{var}': 'shadow' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[shadow]',
-    properties: ['box-shadow'],
-    dark: true,
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'shadow/o',
-    properties: ['--tw-shadow-color', '--tw-shadow', 'box-shadow'],
-    values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)', '0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color)', 'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)'],
-    placeholders: { '{var}': 'shadow', '{var2}': 'shadow-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'brightness',
-    properties: ['filter'],
-    values: ['brightness(var({var}))'],
-    placeholders: { '{var}': 'brightness' },
-  },
-  {
-    layer: 'styles',
-    selector: 'caret',
-    properties: ['caret-color'],
-    dark: true,
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'caret/o',
-    properties: ['caret-color'],
-    values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
-    placeholders: { '{var}': 'caret', '{var2}': 'caret-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'color',
-    properties: ['color'],
-    dark: true,
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'color/o',
-    properties: ['color'],
-    values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
-    placeholders: { '{var}': 'color', '{var2}': 'color-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'columns',
-    properties: ['columns'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'contrast',
-    properties: ['filter'],
-    values: ['contrast(var({var}))'],
-    placeholders: { '{var}': 'contrast' },
-  },
-  {
-    layer: 'styles',
-    selector: 'cursor',
-    properties: ['cursor'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'fill/o',
-    properties: ['fill'],
-    values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
-    placeholders: { '{var}': 'fill', '{var2}': 'fill-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'fill',
-    properties: ['fill'],
-    dark: true,
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'filter',
-    properties: ['filter'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'basis',
-    properties: ['flex-basis'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'basis' },
-  },
-  {
-    layer: 'styles',
-    selector: '[basis]',
-    properties: ['flex-basis'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'flex',
-    properties: ['flex'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'grow',
-    properties: ['flex-grow'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'shrink',
-    properties: ['flex-shrink'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'font-family',
-    properties: ['font-family'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'font-size',
-    properties: ['font-size'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'gap',
-    properties: ['gap'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'gap' },
-  },
-  {
-    layer: 'styles',
-    selector: 'gap-x',
-    properties: ['column-gap'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'gap-x' },
-  },
-  {
-    layer: 'styles',
-    selector: 'gap-y',
-    properties: ['row-gap'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'gap-y' },
-  },
-  {
-    layer: 'styles',
-    selector: '[gap]',
-    properties: ['gap'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[gap-x]',
-    properties: ['column-gap'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[gap-y]',
-    properties: ['row-gap'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'linear',
-    properties: ['--tw-gradient-position', 'background-image'],
-    values: ['var({var}, in oklab)', 'linear-gradient(var(--tw-gradient-stops))'],
-    placeholders: { '{var}': 'linear' },
-  },
-  {
-    layer: 'styles',
-    selector: 'radial',
-    properties: ['--tw-gradient-position', 'background-image'],
-    values: ['var({var}, in oklab)', 'radial-gradient(var(--tw-gradient-stops))'],
-    placeholders: { '{var}': 'radial' },
-  },
-  {
-    layer: 'styles',
-    selector: 'conic',
-    properties: ['--tw-gradient-position', 'background-image'],
-    values: ['var({var}, in oklab)', 'conic-gradient(var(--tw-gradient-stops))'],
-    placeholders: { '{var}': 'conic' },
-  },
-  {
-    layer: 'styles',
-    selector: 'from-position',
-    properties: ['--tw-gradient-from-position'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'from',
-    properties: ['--tw-gradient-from', '--tw-gradient-stops'],
-    values: ['var({var})', 'var( --tw-gradient-from-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-from) var(--tw-gradient-from-position) )'],
-    placeholders: { '{var}': 'from' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'from/o',
-    properties: ['--tw-gradient-from', '--tw-gradient-stops'],
-    values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)', 'var( --tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position) )'],
-    placeholders: { '{var}': 'from', '{var2}': 'from-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'via',
-    properties: ['--tw-gradient-via', '--tw-gradient-via-stops', '--tw-gradient-stops'],
-    values: ['var({var})', 'var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-via) var(--tw-gradient-via-position), var(--tw-gradient-to) var(--tw-gradient-to-position)', 'var(--tw-gradient-via-stops)'],
-    placeholders: { '{var}': 'via' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'via/o',
-    properties: ['--tw-gradient-via', '--tw-gradient-via-stops', '--tw-gradient-stops'],
-    values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)', 'var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-via) var(--tw-gradient-via-position), var(--tw-gradient-to) var(--tw-gradient-to-position)', 'var(--tw-gradient-via-stops)'],
-    placeholders: { '{var}': 'via', '{var2}': 'via-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'via-position',
-    properties: ['--tw-gradient-via-position'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'to',
-    properties: ['--tw-gradient-to', '--tw-gradient-stops'],
-    values: ['var({var})', 'var( --tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position) )'],
-    placeholders: { '{var}': 'to' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'to/o',
-    properties: ['--tw-gradient-to', '--tw-gradient-stops'],
-    values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)', 'var( --tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position) )'],
-    placeholders: { '{var}': 'to', '{var2}': 'to-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'to-position',
-    properties: ['--tw-gradient-to-position'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'gradient-position',
-    properties: ['--tw-gradient-position'],
-    values: ['var({var}, in oklab)'],
-    placeholders: { '{var}': 'gradient-position' },
-  },
-  {
-    layer: 'styles',
-    selector: 'grayscale',
-    properties: ['filter'],
-    values: ['grayscale(var({var}))'],
-    placeholders: { '{var}': 'grayscale' },
-  },
-  {
-    layer: 'styles',
-    selector: 'auto-cols',
-    properties: ['grid-auto-columns'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'auto-rows',
-    properties: ['grid-auto-rows'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'col',
-    properties: ['grid-column'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'col-span',
-    properties: ['grid-column'],
-    values: ['span var({var}) / span var({var})'],
-    placeholders: { '{var}': 'col-span' },
-  },
-  {
-    layer: 'styles',
-    selector: 'col-start',
-    properties: ['grid-column-start'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'col-end',
-    properties: ['grid-column-end'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'row',
-    properties: ['grid-row'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'row-span',
-    properties: ['grid-row'],
-    values: ['span var({var}) / span var({var})'],
-    placeholders: { '{var}': 'row-span' },
-  },
-  {
-    layer: 'styles',
-    selector: 'row-start',
-    properties: ['grid-row-start'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'row-end',
-    properties: ['grid-row-end'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'grid-cols',
-    properties: ['grid-template-columns'],
-    values: ['repeat(var({var}), minmax(0, 1fr))'],
-    placeholders: { '{var}': 'grid-cols' },
-  },
-  {
-    layer: 'styles',
-    selector: '[grid-cols]',
-    properties: ['grid-template-columns'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'grid-rows',
-    properties: ['grid-template-rows'],
-    values: ['repeat(var({var}), minmax(0, 1fr))'],
-    placeholders: { '{var}': 'grid-rows' },
-  },
-  {
-    layer: 'styles',
-    selector: '[grid-rows]',
-    properties: ['grid-template-rows'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'h',
-    properties: ['height'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'h' },
-  },
-  {
-    layer: 'styles',
-    selector: '[h]',
-    properties: ['height'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'hue-rotate',
-    properties: ['filter'],
-    values: ['hue-rotate(var({var}))'],
-    placeholders: { '{var}': 'hue-rotate' },
-  },
-  {
-    layer: 'styles',
-    selector: 'inset-ring',
-    properties: ['--tw-inset-ring-width', '--tw-inset-ring-color', '--tw-inset-ring-shadow', 'box-shadow'],
-    values: ['1px', 'var({var}, currentColor)', 'inset 0 0 0 var(--tw-inset-ring-width) var(--tw-inset-ring-color)', 'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)'],
-    placeholders: { '{var}': 'inset-ring' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'inset-ring/o',
-    properties: ['--tw-inset-ring-width', '--tw-inset-ring-color', '--tw-inset-ring-shadow', 'box-shadow'],
-    values: ['1px', 'color-mix( in oklab, var({var}) var({var2}, 100%), transparent )', 'inset 0 0 0 var(--tw-inset-ring-width) var(--tw-inset-ring-color)', 'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)'],
-    placeholders: { '{var}': 'inset-ring', '{var2}': 'inset-ring-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'inset-ring-w',
-    properties: ['--tw-inset-ring-width'],
-    values: ['var({var})'],
-    placeholders: { '{var}': 'inset-ring-w' },
-  },
-  {
-    layer: 'styles',
-    selector: 'inset',
-    properties: ['inset'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'inset' },
-  },
-  {
-    layer: 'styles',
-    selector: 'start',
-    properties: ['inset-inline-start'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'start' },
-  },
-  {
-    layer: 'styles',
-    selector: 'end',
-    properties: ['inset-inline-end'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'end' },
-  },
-  {
-    layer: 'styles',
-    selector: 'inset-x',
-    properties: ['inset-inline'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'inset-x' },
-  },
-  {
-    layer: 'styles',
-    selector: 'inset-y',
-    properties: ['inset-block'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'inset-y' },
-  },
-  {
-    layer: 'styles',
-    selector: '[inset]',
-    properties: ['inset'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[start]',
-    properties: ['inset-inline-start'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[end]',
-    properties: ['inset-inline-end'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[inset-x]',
-    properties: ['inset-inline'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[inset-y]',
-    properties: ['inset-block'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'invert',
-    properties: ['filter'],
-    values: ['invert(var({var}))'],
-    placeholders: { '{var}': 'invert' },
-  },
-  {
-    layer: 'styles',
-    selector: 'left',
-    properties: ['left'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'left' },
-  },
-  {
-    layer: 'styles',
-    selector: '[left]',
-    properties: ['left'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'tracking',
-    properties: ['letter-spacing'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'leading',
-    properties: ['line-height'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'leading' },
-  },
-  {
-    layer: 'styles',
-    selector: '[leading]',
-    properties: ['line-height'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'list-image',
-    properties: ['list-style-image'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'list',
-    properties: ['list-style-type'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'm',
-    properties: ['margin'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'm' },
-  },
-  {
-    layer: 'styles',
-    selector: '[m]',
-    properties: ['margin'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'mt',
-    properties: ['margin-top'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'mt' },
-  },
-  {
-    layer: 'styles',
-    selector: '[mt]',
-    properties: ['margin-top'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'mb',
-    properties: ['margin-bottom'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'mb' },
-  },
-  {
-    layer: 'styles',
-    selector: '[mb]',
-    properties: ['margin-bottom'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'ml',
-    properties: ['margin-left'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'ml' },
-  },
-  {
-    layer: 'styles',
-    selector: '[ml]',
-    properties: ['margin-left'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'mr',
-    properties: ['margin-right'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'mr' },
-  },
-  {
-    layer: 'styles',
-    selector: '[mr]',
-    properties: ['margin-right'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'ms',
-    properties: ['margin-inline-start'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'ms' },
-  },
-  {
-    layer: 'styles',
-    selector: '[ms]',
-    properties: ['margin-inline-start'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'me',
-    properties: ['margin-inline-end'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'me' },
-  },
-  {
-    layer: 'styles',
-    selector: '[me]',
-    properties: ['margin-inline-end'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'mx',
-    properties: ['margin-inline'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'mx' },
-  },
-  {
-    layer: 'styles',
-    selector: '[mx]',
-    properties: ['margin-inline'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'my',
-    properties: ['margin-block'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'my' },
-  },
-  {
-    layer: 'styles',
-    selector: '[my]',
-    properties: ['margin-block'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'mask-position',
-    properties: ['mask-position'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'mask-size',
-    properties: ['mask-size'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'max-h',
-    properties: ['max-height'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'max-h' },
-  },
-  {
-    layer: 'styles',
-    selector: '[max-h]',
-    properties: ['max-height'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'max-w',
-    properties: ['max-width'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'max-w' },
-  },
-  {
-    layer: 'styles',
-    selector: '[max-w]',
-    properties: ['max-width'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'min-h',
-    properties: ['min-height'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'min-h' },
-  },
-  {
-    layer: 'styles',
-    selector: '[min-h]',
-    properties: ['min-height'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'min-w',
-    properties: ['min-width'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'min-w' },
-  },
-  {
-    layer: 'styles',
-    selector: '[min-w]',
-    properties: ['min-width'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'object-position',
-    properties: ['object-position'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'opacity',
-    properties: ['opacity'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'order',
-    properties: ['order'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'outline',
-    properties: ['outline-color'],
-    dark: true,
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'outline/o',
-    properties: ['outline-color'],
-    values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
-    placeholders: { '{var}': 'outline', '{var2}': 'outline-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'outline-offset',
-    properties: ['outline-offset'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'outline-w',
-    properties: ['outline-width'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'p',
-    properties: ['padding'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'p' },
-  },
-  {
-    layer: 'styles',
-    selector: '[p]',
-    properties: ['padding'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'pt',
-    properties: ['padding-top'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'pt' },
-  },
-  {
-    layer: 'styles',
-    selector: 'pb',
-    properties: ['padding-bottom'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'pb' },
-  },
-  {
-    layer: 'styles',
-    selector: 'pl',
-    properties: ['padding-left'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'pl' },
-  },
-  {
-    layer: 'styles',
-    selector: 'pr',
-    properties: ['padding-right'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'pr' },
-  },
-  {
-    layer: 'styles',
-    selector: 'ps',
-    properties: ['padding-inline-start'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'ps' },
-  },
-  {
-    layer: 'styles',
-    selector: 'pe',
-    properties: ['padding-inline-end'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'pe' },
-  },
-  {
-    layer: 'styles',
-    selector: '[pt]',
-    properties: ['padding-top'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[pb]',
-    properties: ['padding-bottom'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[pl]',
-    properties: ['padding-left'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[pr]',
-    properties: ['padding-right'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[ps]',
-    properties: ['padding-inline-start'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[pe]',
-    properties: ['padding-inline-end'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'px',
-    properties: ['padding-inline'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'px' },
-  },
-  {
-    layer: 'styles',
-    selector: 'py',
-    properties: ['padding-block'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'py' },
-  },
-  {
-    layer: 'styles',
-    selector: '[px]',
-    properties: ['padding-inline'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[py]',
-    properties: ['padding-block'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'perspective-origin',
-    properties: ['perspective-origin'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'perspective',
-    properties: ['perspective'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'right',
-    properties: ['right'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'right' },
-  },
-  {
-    layer: 'styles',
-    selector: '[right]',
-    properties: ['right'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'ring',
-    properties: ['--tw-ring-color', '--tw-ring-shadow', 'box-shadow'],
-    values: ['var({var}, currentColor)', 'var(--tw-ring-inset,) 0 0 0 calc(var(--tw-ring-width) + var(--tw-ring-offset-width)) var(--tw-ring-color)', 'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)'],
-    placeholders: { '{var}': 'ring' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'ring/o',
-    properties: ['--tw-ring-width', '--tw-ring-color', '--tw-ring-shadow', 'box-shadow'],
-    values: ['1px', 'color-mix(in oklab, var({var}) var({var2}, 100%), transparent)', 'var(--tw-ring-inset,) 0 0 0 calc(var(--tw-ring-width) + var(--tw-ring-offset-width)) var(--tw-ring-color)', 'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)'],
-    placeholders: { '{var}': 'ring', '{var2}': 'ring-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'ring-w',
-    properties: ['--tw-ring-width'],
-    values: ['var({var})'],
-    placeholders: { '{var}': 'ring-w' },
-  },
-  {
-    layer: 'styles',
-    selector: 'rotate',
-    properties: ['rotate'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'rotate-x',
-    properties: ['--tw-rotate-x', 'transform'],
-    values: ['rotateX(var({var}))', 'var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,)'],
-    placeholders: { '{var}': 'rotate-x' },
-  },
-  {
-    layer: 'styles',
-    selector: 'rotate-y',
-    properties: ['--tw-rotate-y', 'transform'],
-    values: ['rotateY(var({var}))', 'var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,)'],
-    placeholders: { '{var}': 'rotate-y' },
-  },
-  {
-    layer: 'styles',
-    selector: 'rotate-z',
-    properties: ['--tw-rotate-z', 'transform'],
-    values: ['rotateZ(var({var}))', 'var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,)'],
-    placeholders: { '{var}': 'rotate-z' },
-  },
-  {
-    layer: 'styles',
-    selector: 'saturate',
-    properties: ['filter'],
-    values: ['saturate(var({var}))'],
-    placeholders: { '{var}': 'saturate' },
-  },
-  {
-    layer: 'styles',
-    selector: 'scale',
-    properties: ['--tw-scale-x', '--tw-scale-y', '--tw-scale-z', 'scale'],
-    values: ['var({var})', 'var({var})', 'var({var})', 'var(--tw-scale-x) var(--tw-scale-y)'],
-    placeholders: { '{var}': 'scale' },
-  },
-  {
-    layer: 'styles',
-    selector: 'scale-x',
-    properties: ['--tw-scale-x', 'scale'],
-    values: ['var({var})', 'var(--tw-scale-x) var(--tw-scale-y)'],
-    placeholders: { '{var}': 'scale-x' },
-  },
-  {
-    layer: 'styles',
-    selector: 'scale-y',
-    properties: ['--tw-scale-y', 'scale'],
-    values: ['var({var})', 'var(--tw-scale-x) var(--tw-scale-y)'],
-    placeholders: { '{var}': 'scale-y' },
-  },
-  {
-    layer: 'styles',
-    selector: 'scale-z',
-    properties: ['--tw-scale-z', 'scale'],
-    values: ['var({var})', 'var(--tw-scale-x) var(--tw-scale-y) var(--tw-scale-z)'],
-    placeholders: { '{var}': 'scale-z' },
-  },
-  {
-    layer: 'styles',
-    selector: 'scroll-m',
-    properties: ['scroll-margin'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'scroll-m' },
-  },
-  {
-    layer: 'styles',
-    selector: '[scroll-m]',
-    properties: ['scroll-margin'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'scroll-mt',
-    properties: ['scroll-margin-top'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'scroll-mt' },
-  },
-  {
-    layer: 'styles',
-    selector: '[scroll-mt]',
-    properties: ['scroll-margin-top'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'scroll-mb',
-    properties: ['scroll-margin-bottom'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'scroll-mb' },
-  },
-  {
-    layer: 'styles',
-    selector: '[scroll-mb]',
-    properties: ['scroll-margin-bottom'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'scroll-ml',
-    properties: ['scroll-margin-left'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'scroll-ml' },
-  },
-  {
-    layer: 'styles',
-    selector: '[scroll-ml]',
-    properties: ['scroll-margin-left'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'scroll-mr',
-    properties: ['scroll-margin-right'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'scroll-mr' },
-  },
-  {
-    layer: 'styles',
-    selector: '[scroll-mr]',
-    properties: ['scroll-margin-right'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'scroll-ms',
-    properties: ['scroll-margin-inline-start'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'scroll-ms' },
-  },
-  {
-    layer: 'styles',
-    selector: '[scroll-ms]',
-    properties: ['scroll-margin-inline-start'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'scroll-me',
-    properties: ['scroll-margin-inline-end'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'scroll-me' },
-  },
-  {
-    layer: 'styles',
-    selector: '[scroll-me]',
-    properties: ['scroll-margin-inline-end'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'scroll-mx',
-    properties: ['scroll-margin-inline'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'scroll-mx' },
-  },
-  {
-    layer: 'styles',
-    selector: '[scroll-mx]',
-    properties: ['scroll-margin-inline'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'scroll-my',
-    properties: ['scroll-margin-block'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'scroll-my' },
-  },
-  {
-    layer: 'styles',
-    selector: '[scroll-my]',
-    properties: ['scroll-margin-block'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'scroll-p',
-    properties: ['scroll-padding'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'scroll-p' },
-  },
-  {
-    layer: 'styles',
-    selector: '[scroll-p]',
-    properties: ['scroll-padding'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'scroll-pt',
-    properties: ['scroll-padding-top'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'scroll-pt' },
-  },
-  {
-    layer: 'styles',
-    selector: 'scroll-pb',
-    properties: ['scroll-padding-bottom'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'scroll-pb' },
-  },
-  {
-    layer: 'styles',
-    selector: 'scroll-pl',
-    properties: ['scroll-padding-left'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'scroll-pl' },
-  },
-  {
-    layer: 'styles',
-    selector: 'scroll-pr',
-    properties: ['scroll-padding-right'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'scroll-pr' },
-  },
-  {
-    layer: 'styles',
-    selector: 'scroll-ps',
-    properties: ['scroll-padding-inline-start'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'scroll-ps' },
-  },
-  {
-    layer: 'styles',
-    selector: 'scroll-pe',
-    properties: ['scroll-padding-inline-end'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'scroll-pe' },
-  },
-  {
-    layer: 'styles',
-    selector: '[scroll-pt]',
-    properties: ['scroll-padding-top'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[scroll-pb]',
-    properties: ['scroll-padding-bottom'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[scroll-pl]',
-    properties: ['scroll-padding-left'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[scroll-pr]',
-    properties: ['scroll-padding-right'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[scroll-ps]',
-    properties: ['scroll-padding-inline-start'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[scroll-pe]',
-    properties: ['scroll-padding-inline-end'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'scroll-px',
-    properties: ['scroll-padding-inline'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'scroll-px' },
-  },
-  {
-    layer: 'styles',
-    selector: 'scroll-py',
-    properties: ['scroll-padding-block'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'scroll-py' },
-  },
-  {
-    layer: 'styles',
-    selector: '[scroll-px]',
-    properties: ['scroll-padding-inline'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: '[scroll-py]',
-    properties: ['scroll-padding-block'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'sepia',
-    properties: ['filter'],
-    values: ['sepia(var({var}))'],
-    placeholders: { '{var}': 'sepia' },
-  },
-  {
-    layer: 'styles',
-    selector: 'size',
-    properties: ['width', 'height'],
-    values: ['calc(var(--spacing) * var({var}))', 'calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'size' },
-  },
-  {
-    layer: 'styles',
-    selector: '[size]',
-    properties: ['width', 'height'],
-    values: ['var({var})', 'var({var})'],
-    placeholders: { '{var}': 'size' },
-  },
-  {
-    layer: 'styles',
-    selector: 'skew',
-    properties: ['--tw-skew-x', '--tw-skew-y', 'transform'],
-    values: ['skewX(var({var}))', 'skewY(var({var}))', 'var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,)'],
-    placeholders: { '{var}': 'skew' },
-  },
-  {
-    layer: 'styles',
-    selector: 'skew-x',
-    properties: ['--tw-skew-x', 'transform'],
-    values: ['skewX(var({var}))', 'var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,)'],
-    placeholders: { '{var}': 'skew-x' },
-  },
-  {
-    layer: 'styles',
-    selector: 'skew-y',
-    properties: ['--tw-skew-y', 'transform'],
-    values: ['skewY(var({var}))', 'var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,)'],
-    placeholders: { '{var}': 'skew-y' },
-  },
-  {
-    layer: 'styles',
-    selector: 'stroke-w',
-    properties: ['stroke-width'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'stroke',
-    properties: ['stroke'],
-    dark: true,
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'stroke/o',
-    properties: ['stroke'],
-    values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
-    placeholders: { '{var}': 'stroke', '{var2}': 'stroke-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'decoration',
-    properties: ['text-decoration-color'],
-    dark: true,
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'decoration/o',
-    properties: ['text-decoration-color'],
-    values: ['color-mix( in oklab, var({var}) var({var2}, 100%), transparent )'],
-    placeholders: { '{var}': 'decoration', '{var2}': 'decoration-o' },
-    dark: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'decoration-thickness',
-    properties: ['text-decoration-thickness'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'indent',
-    properties: ['text-indent'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'indent' },
-  },
-  {
-    layer: 'styles',
-    selector: '[indent]',
-    properties: ['text-indent'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'underline-offset',
-    properties: ['text-underline-offset'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'top',
-    properties: ['top'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'top' },
-  },
-  {
-    layer: 'styles',
-    selector: '[top]',
-    properties: ['top'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'origin',
-    properties: ['transform-origin'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'transform',
-    properties: ['transform'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'delay',
-    properties: ['transition-delay'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'transition',
-    properties: ['transition-property', 'transition-timing-function', 'transition-duration'],
-    values: ['var({var}, var(--default-transition-property))', 'var(--default-transition-timing-function)', 'var(--default-transition-duration)'],
-    placeholders: { '{var}': 'transition' },
-  },
-  {
-    layer: 'styles',
-    selector: 'duration',
-    properties: ['transition-duration'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'ease',
-    properties: ['transition-timing-function'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'translate',
-    properties: ['--tw-translate-x', '--tw-translate-y', 'translate'],
-    values: ['calc(var(--spacing) * var({var}))', 'calc(var(--spacing) * var({var}))', 'var(--tw-translate-x) var(--tw-translate-y)'],
-    placeholders: { '{var}': 'translate' },
-  },
-  {
-    layer: 'styles',
-    selector: '[translate]',
-    properties: ['--tw-translate-x', '--tw-translate-y', 'translate'],
-    values: ['var({var})', 'var({var})', 'var(--tw-translate-x) var(--tw-translate-y)'],
-    placeholders: { '{var}': 'translate' },
-  },
-  {
-    layer: 'styles',
-    selector: 'translate-x',
-    properties: ['--tw-translate-x', 'translate'],
-    values: ['calc(var(--spacing) * var({var}))', 'var(--tw-translate-x) var(--tw-translate-y)'],
-    placeholders: { '{var}': 'translate-x' },
-  },
-  {
-    layer: 'styles',
-    selector: '[translate-x]',
-    properties: ['--tw-translate-x', 'translate'],
-    values: ['var({var})', 'var(--tw-translate-x) var(--tw-translate-y)'],
-    placeholders: { '{var}': 'translate-x' },
-  },
-  {
-    layer: 'styles',
-    selector: 'translate-y',
-    properties: ['--tw-translate-y', 'translate'],
-    values: ['calc(var(--spacing) * var({var}))', 'var(--tw-translate-x) var(--tw-translate-y)'],
-    placeholders: { '{var}': 'translate-y' },
-  },
-  {
-    layer: 'styles',
-    selector: '[translate-y]',
-    properties: ['--tw-translate-y', 'translate'],
-    values: ['var({var})', 'var(--tw-translate-x) var(--tw-translate-y)'],
-    placeholders: { '{var}': 'translate-y' },
-  },
-  {
-    layer: 'styles',
-    selector: 'translate-z',
-    properties: ['--tw-translate-z', 'translate'],
-    values: ['calc(var(--spacing) * var({var}))', 'var(--tw-translate-x) var(--tw-translate-y) var(--tw-translate-z)'],
-    placeholders: { '{var}': 'translate-z' },
-  },
-  {
-    layer: 'styles',
-    selector: '[translate-z]',
-    properties: ['--tw-translate-z', 'translate'],
-    values: ['var({var})', 'var(--tw-translate-x) var(--tw-translate-y) var(--tw-translate-z)'],
-    placeholders: { '{var}': 'translate-z' },
-  },
-  {
-    layer: 'styles',
-    selector: 'align',
-    properties: ['vertical-align'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'w',
-    properties: ['width'],
-    values: ['calc(var(--spacing) * var({var}))'],
-    placeholders: { '{var}': 'w' },
-  },
-  {
-    layer: 'styles',
-    selector: '[w]',
-    properties: ['width'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'will-change',
-    properties: ['will-change'],
-    arbitrary: true,
-  },
-  {
-    layer: 'styles',
-    selector: 'z',
-    properties: ['z-index'],
-    arbitrary: true,
-  },
-  {
-    layer: 'utilities',
-    selector: 'backdrop-filter-none',
-    properties: ['backdrop-filter'],
-    values: ['none'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'bg-image-none',
-    properties: ['background-image'],
-    values: ['none'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'shadow-none',
-    properties: ['box-shadow'],
-    values: ['0 0 #0000'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'columns-auto',
-    properties: ['columns'],
-    values: ['auto'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'content-none',
-    properties: ['content'],
-    values: ['none'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'normal-nums',
-    properties: ['font-variant-numeric'],
-    values: ['normal'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'col-start-auto',
-    properties: ['grid-column-start'],
-    values: ['auto'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'col-end-auto',
-    properties: ['grid-column-end'],
-    values: ['auto'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'row-start-auto',
-    properties: ['grid-row-start'],
-    values: ['auto'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'row-end-auto',
-    properties: ['grid-row-end'],
-    values: ['auto'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'inset-x-full',
-    properties: ['inset-inline'],
-    values: ['100%'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'inset-y-full',
-    properties: ['inset-block'],
-    values: ['100%'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'start-full',
-    properties: ['inset-inline-start'],
-    values: ['100%'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'end-full',
-    properties: ['inset-inline-end'],
-    values: ['100%'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'list-image-none',
-    properties: ['list-style-image'],
-    values: ['none'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'm-auto',
-    properties: ['margin'],
-    values: ['auto'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'mt-auto',
-    properties: ['margin-top'],
-    values: ['auto'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'mb-auto',
-    properties: ['margin-bottom'],
-    values: ['auto'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'ml-auto',
-    properties: ['margin-left'],
-    values: ['auto'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'mr-auto',
-    properties: ['margin-right'],
-    values: ['auto'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'ms-auto',
-    properties: ['margin-inline-start'],
-    values: ['auto'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'me-auto',
-    properties: ['margin-inline-end'],
-    values: ['auto'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'mx-auto',
-    properties: ['margin-inline'],
-    values: ['auto'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'my-auto',
-    properties: ['margin-block'],
-    values: ['auto'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'outline-none',
-    properties: ['outline'],
-    values: ['none'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'outline-hidden',
-    properties: ['outline', 'outline-offset'],
-    values: ['2px solid transparent', '2px'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'break-words',
-    properties: ['overflow-wrap'],
-    values: ['break-word'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'perspective-none',
-    properties: ['perspective'],
-    values: ['none'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'snap-none',
-    properties: ['scroll-snap-type'],
-    values: ['none'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'truncate',
-    properties: ['overflow', 'text-overflow', 'white-space'],
-    values: ['hidden', 'ellipsis', 'nowrap'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'underline-offset-auto',
-    properties: ['text-underline-offset'],
-    values: ['auto'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'duration-initial',
-    properties: ['transition-duration'],
-    values: ['initial'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'transition-none',
-    properties: ['transition-property'],
-    values: ['none'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'translate-none',
-    properties: ['translate'],
-    values: ['none'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'break-normal',
-    properties: ['overflow-wrap', 'word-break'],
-    values: ['normal', 'normal'],
-  },
-  {
-    layer: 'utilities',
-    selector: 'z-auto',
-    properties: ['z-index'],
-    values: ['auto'],
-  },
-  {
-    layer: 'components',
-    selector: 'aspect-video',
-    properties: ['aspect-ratio'],
-    values: ['var(--aspect-video)'],
-  },
-  {
-    layer: 'components',
-    selector: 'ordinal',
-    properties: ['--tw-ordinal', 'font-variant-numeric'],
-    values: ['ordinal', 'var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)'],
-  },
-  {
-    layer: 'components',
-    selector: 'slashed-zero',
-    properties: ['--tw-slashed-zero', 'font-variant-numeric'],
-    values: ['slashed-zero', 'var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)'],
-  },
-  {
-    layer: 'components',
-    selector: 'scale-3d',
-    properties: ['scale'],
-    values: ['var(--tw-scale-x) var(--tw-scale-y) var(--tw-scale-z)'],
-  },
+	{
+		layer: 'styles',
+		selector: 'accent',
+		properties: ['accent-color'],
+		dark: true,
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'accent/o',
+		properties: ['accent-color'],
+		values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
+		placeholders: { '{var}': 'accent', '{var2}': 'accent-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'animate',
+		properties: ['animation'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'aspect',
+		properties: ['aspect-ratio'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'backdrop-blur',
+		properties: ['backdrop-filter'],
+		values: ['blur(var({var}))'],
+		placeholders: { '{var}': 'backdrop-blur' }
+	},
+	{
+		layer: 'styles',
+		selector: 'backdrop-brightness',
+		properties: ['backdrop-filter'],
+		values: ['brightness(var({var}))'],
+		placeholders: { '{var}': 'backdrop-brightness' }
+	},
+	{
+		layer: 'styles',
+		selector: 'backdrop-contrast',
+		properties: ['backdrop-filter'],
+		values: ['contrast(var({var}))'],
+		placeholders: { '{var}': 'backdrop-contrast' }
+	},
+	{
+		layer: 'styles',
+		selector: 'backdrop-filter',
+		properties: ['backdrop-filter'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'backdrop-grayscale',
+		properties: ['backdrop-filter'],
+		values: ['grayscale(var({var}))'],
+		placeholders: { '{var}': 'backdrop-grayscale' }
+	},
+	{
+		layer: 'styles',
+		selector: 'backdrop-hue-rotate',
+		properties: ['backdrop-filter'],
+		values: ['hue-rotate(var({var}))'],
+		placeholders: { '{var}': 'backdrop-hue-rotate' }
+	},
+	{
+		layer: 'styles',
+		selector: 'backdrop-invert',
+		properties: ['backdrop-filter'],
+		values: ['invert(var({var}))'],
+		placeholders: { '{var}': 'backdrop-invert' }
+	},
+	{
+		layer: 'styles',
+		selector: 'backdrop-opacity',
+		properties: ['backdrop-filter'],
+		values: ['opacity(var({var}))'],
+		placeholders: { '{var}': 'backdrop-opacity' }
+	},
+	{
+		layer: 'styles',
+		selector: 'backdrop-saturate',
+		properties: ['backdrop-filter'],
+		values: ['saturate(var({var}))'],
+		placeholders: { '{var}': 'backdrop-saturate' }
+	},
+	{
+		layer: 'styles',
+		selector: 'backdrop-sepia',
+		properties: ['backdrop-filter'],
+		values: ['sepia(var({var}))'],
+		placeholders: { '{var}': 'backdrop-sepia' }
+	},
+	{
+		layer: 'styles',
+		selector: 'bg',
+		properties: ['background-color'],
+		dark: true,
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'bg/o',
+		properties: ['background-color'],
+		values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
+		placeholders: { '{var}': 'bg', '{var2}': 'bg-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border',
+		properties: ['border-color'],
+		dark: true,
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-t',
+		properties: ['border-top-color'],
+		dark: true,
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-r',
+		properties: ['border-right-color'],
+		dark: true,
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-b',
+		properties: ['border-bottom-color'],
+		dark: true,
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-l',
+		properties: ['border-left-color'],
+		dark: true,
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-s',
+		properties: ['border-inline-start-color'],
+		dark: true,
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-e',
+		properties: ['border-inline-end-color'],
+		dark: true,
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-x',
+		properties: ['border-inline-color'],
+		dark: true,
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-y',
+		properties: ['border-block-color'],
+		dark: true,
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'bg-image',
+		properties: ['background-image'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'bg-position',
+		properties: ['background-position'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'bg-size',
+		properties: ['background-size'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'blur',
+		properties: ['filter'],
+		values: ['blur(var({var}))'],
+		placeholders: { '{var}': 'blur' }
+	},
+	{
+		layer: 'styles',
+		selector: 'border/o',
+		properties: ['border-color'],
+		values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
+		placeholders: { '{var}': 'border', '{var2}': 'border-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-t/o',
+		properties: ['border-top-color'],
+		values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
+		placeholders: { '{var}': 'border-t', '{var2}': 'border-t-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-r/o',
+		properties: ['border-right-color'],
+		values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
+		placeholders: { '{var}': 'border-r', '{var2}': 'border-r-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-b/o',
+		properties: ['border-bottom-color'],
+		values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
+		placeholders: { '{var}': 'border-b', '{var2}': 'border-b-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-l/o',
+		properties: ['border-left-color'],
+		values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
+		placeholders: { '{var}': 'border-l', '{var2}': 'border-l-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-s/o',
+		properties: ['border-inline-start-color'],
+		values: ['color-mix( in oklab, var({var}) var({var2}, 100%), transparent )'],
+		placeholders: { '{var}': 'border-s', '{var2}': 'border-s-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-e/o',
+		properties: ['border-inline-end-color'],
+		values: ['color-mix( in oklab, var({var}) var({var2}, 100%), transparent )'],
+		placeholders: { '{var}': 'border-e', '{var2}': 'border-e-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-x/o',
+		properties: ['border-inline-color'],
+		values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
+		placeholders: { '{var}': 'border-x', '{var2}': 'border-x-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-y/o',
+		properties: ['border-block-color'],
+		values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
+		placeholders: { '{var}': 'border-y', '{var2}': 'border-y-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-w',
+		properties: ['border-width'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-t-w',
+		properties: ['border-top-width'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-r-w',
+		properties: ['border-right-width'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-b-w',
+		properties: ['border-bottom-width'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-l-w',
+		properties: ['border-left-width'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-s-w',
+		properties: ['border-inline-start-width'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-e-w',
+		properties: ['border-inline-end-width'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-x-w',
+		properties: ['border-inline-width'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-y-w',
+		properties: ['border-block-width'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'rounded',
+		properties: ['border-radius'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'rounded-s',
+		properties: ['border-start-start-radius', 'border-end-start-radius'],
+		values: ['var({var})', 'var({var})'],
+		placeholders: { '{var}': 'rounded-s' }
+	},
+	{
+		layer: 'styles',
+		selector: 'rounded-e',
+		properties: ['border-start-end-radius', 'border-end-end-radius'],
+		values: ['var({var})', 'var({var})'],
+		placeholders: { '{var}': 'rounded-e' }
+	},
+	{
+		layer: 'styles',
+		selector: 'rounded-t',
+		properties: ['border-top-left-radius', 'border-top-right-radius'],
+		values: ['var({var})', 'var({var})'],
+		placeholders: { '{var}': 'rounded-t' }
+	},
+	{
+		layer: 'styles',
+		selector: 'rounded-r',
+		properties: ['border-top-right-radius', 'border-bottom-right-radius'],
+		values: ['var({var})', 'var({var})'],
+		placeholders: { '{var}': 'rounded-r' }
+	},
+	{
+		layer: 'styles',
+		selector: 'rounded-b',
+		properties: ['border-bottom-right-radius', 'border-bottom-left-radius'],
+		values: ['var({var})', 'var({var})'],
+		placeholders: { '{var}': 'rounded-b' }
+	},
+	{
+		layer: 'styles',
+		selector: 'rounded-l',
+		properties: ['border-top-left-radius', 'border-bottom-left-radius'],
+		values: ['var({var})', 'var({var})'],
+		placeholders: { '{var}': 'rounded-l' }
+	},
+	{
+		layer: 'styles',
+		selector: 'rounded-ss',
+		properties: ['border-start-start-radius'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'rounded-se',
+		properties: ['border-start-end-radius'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'rounded-ee',
+		properties: ['border-end-end-radius'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'rounded-es',
+		properties: ['border-end-start-radius'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'rounded-tl',
+		properties: ['border-top-left-radius'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'rounded-tr',
+		properties: ['border-top-right-radius'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'rounded-br',
+		properties: ['border-bottom-right-radius'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'rounded-bl',
+		properties: ['border-bottom-left-radius'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-spacing',
+		properties: ['border-spacing'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'border-spacing' }
+	},
+	{
+		layer: 'styles',
+		selector: '[border-spacing]',
+		properties: ['border-spacing'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'border-spacing-x',
+		properties: ['--tw-border-spacing-x', 'border-spacing'],
+		values: [
+			'calc(var(--spacing) * var({var}))',
+			'var(--tw-border-spacing-x) var(--tw-border-spacing-y)'
+		],
+		placeholders: { '{var}': 'border-spacing-x' }
+	},
+	{
+		layer: 'styles',
+		selector: '[border-spacing-x]',
+		properties: ['--tw-border-spacing-x', 'border-spacing'],
+		values: ['var({var})', 'var(--tw-border-spacing-x) var(--tw-border-spacing-y)'],
+		placeholders: { '{var}': 'border-spacing-x' }
+	},
+	{
+		layer: 'styles',
+		selector: 'border-spacing-y',
+		properties: ['--tw-border-spacing-y', 'border-spacing'],
+		values: [
+			'calc(var(--spacing) * var({var}))',
+			'var(--tw-border-spacing-x) var(--tw-border-spacing-y)'
+		],
+		placeholders: { '{var}': 'border-spacing-y' }
+	},
+	{
+		layer: 'styles',
+		selector: '[border-spacing-y]',
+		properties: ['--tw-border-spacing-y', 'border-spacing'],
+		values: ['var({var})', 'var(--tw-border-spacing-x) var(--tw-border-spacing-y)'],
+		placeholders: { '{var}': 'border-spacing-y' }
+	},
+	{
+		layer: 'styles',
+		selector: 'bottom',
+		properties: ['bottom'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'bottom' }
+	},
+	{
+		layer: 'styles',
+		selector: '[bottom]',
+		properties: ['bottom'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'shadow',
+		properties: ['--tw-shadow-color', '--tw-shadow', 'box-shadow'],
+		values: [
+			'var({var}, rgb(0 0 0 / 0.1))',
+			'0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color)',
+			'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)'
+		],
+		placeholders: { '{var}': 'shadow' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: '[shadow]',
+		properties: ['box-shadow'],
+		dark: true,
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'shadow/o',
+		properties: ['--tw-shadow-color', '--tw-shadow', 'box-shadow'],
+		values: [
+			'color-mix(in oklab, var({var}) var({var2}, 100%), transparent)',
+			'0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color)',
+			'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)'
+		],
+		placeholders: { '{var}': 'shadow', '{var2}': 'shadow-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'brightness',
+		properties: ['filter'],
+		values: ['brightness(var({var}))'],
+		placeholders: { '{var}': 'brightness' }
+	},
+	{
+		layer: 'styles',
+		selector: 'caret',
+		properties: ['caret-color'],
+		dark: true,
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'caret/o',
+		properties: ['caret-color'],
+		values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
+		placeholders: { '{var}': 'caret', '{var2}': 'caret-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'color',
+		properties: ['color'],
+		dark: true,
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'color/o',
+		properties: ['color'],
+		values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
+		placeholders: { '{var}': 'color', '{var2}': 'color-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'columns',
+		properties: ['columns'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'contrast',
+		properties: ['filter'],
+		values: ['contrast(var({var}))'],
+		placeholders: { '{var}': 'contrast' }
+	},
+	{
+		layer: 'styles',
+		selector: 'cursor',
+		properties: ['cursor'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'fill/o',
+		properties: ['fill'],
+		values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
+		placeholders: { '{var}': 'fill', '{var2}': 'fill-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'fill',
+		properties: ['fill'],
+		dark: true,
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'filter',
+		properties: ['filter'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'basis',
+		properties: ['flex-basis'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'basis' }
+	},
+	{
+		layer: 'styles',
+		selector: '[basis]',
+		properties: ['flex-basis'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'flex',
+		properties: ['flex'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'grow',
+		properties: ['flex-grow'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'shrink',
+		properties: ['flex-shrink'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'font-family',
+		properties: ['font-family'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'font-size',
+		properties: ['font-size'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'gap',
+		properties: ['gap'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'gap' }
+	},
+	{
+		layer: 'styles',
+		selector: 'gap-x',
+		properties: ['column-gap'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'gap-x' }
+	},
+	{
+		layer: 'styles',
+		selector: 'gap-y',
+		properties: ['row-gap'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'gap-y' }
+	},
+	{
+		layer: 'styles',
+		selector: '[gap]',
+		properties: ['gap'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: '[gap-x]',
+		properties: ['column-gap'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: '[gap-y]',
+		properties: ['row-gap'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'linear',
+		properties: ['--tw-gradient-position', 'background-image'],
+		values: ['var({var}, in oklab)', 'linear-gradient(var(--tw-gradient-stops))'],
+		placeholders: { '{var}': 'linear' }
+	},
+	{
+		layer: 'styles',
+		selector: 'radial',
+		properties: ['--tw-gradient-position', 'background-image'],
+		values: ['var({var}, in oklab)', 'radial-gradient(var(--tw-gradient-stops))'],
+		placeholders: { '{var}': 'radial' }
+	},
+	{
+		layer: 'styles',
+		selector: 'conic',
+		properties: ['--tw-gradient-position', 'background-image'],
+		values: ['var({var}, in oklab)', 'conic-gradient(var(--tw-gradient-stops))'],
+		placeholders: { '{var}': 'conic' }
+	},
+	{
+		layer: 'styles',
+		selector: 'from-position',
+		properties: ['--tw-gradient-from-position'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'from',
+		properties: ['--tw-gradient-from', '--tw-gradient-stops'],
+		values: [
+			'var({var})',
+			'var( --tw-gradient-from-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-from) var(--tw-gradient-from-position) )'
+		],
+		placeholders: { '{var}': 'from' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'from/o',
+		properties: ['--tw-gradient-from', '--tw-gradient-stops'],
+		values: [
+			'color-mix(in oklab, var({var}) var({var2}, 100%), transparent)',
+			'var( --tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position) )'
+		],
+		placeholders: { '{var}': 'from', '{var2}': 'from-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'via',
+		properties: ['--tw-gradient-via', '--tw-gradient-via-stops', '--tw-gradient-stops'],
+		values: [
+			'var({var})',
+			'var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-via) var(--tw-gradient-via-position), var(--tw-gradient-to) var(--tw-gradient-to-position)',
+			'var(--tw-gradient-via-stops)'
+		],
+		placeholders: { '{var}': 'via' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'via/o',
+		properties: ['--tw-gradient-via', '--tw-gradient-via-stops', '--tw-gradient-stops'],
+		values: [
+			'color-mix(in oklab, var({var}) var({var2}, 100%), transparent)',
+			'var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-via) var(--tw-gradient-via-position), var(--tw-gradient-to) var(--tw-gradient-to-position)',
+			'var(--tw-gradient-via-stops)'
+		],
+		placeholders: { '{var}': 'via', '{var2}': 'via-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'via-position',
+		properties: ['--tw-gradient-via-position'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'to',
+		properties: ['--tw-gradient-to', '--tw-gradient-stops'],
+		values: [
+			'var({var})',
+			'var( --tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position) )'
+		],
+		placeholders: { '{var}': 'to' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'to/o',
+		properties: ['--tw-gradient-to', '--tw-gradient-stops'],
+		values: [
+			'color-mix(in oklab, var({var}) var({var2}, 100%), transparent)',
+			'var( --tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position) )'
+		],
+		placeholders: { '{var}': 'to', '{var2}': 'to-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'to-position',
+		properties: ['--tw-gradient-to-position'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'gradient-position',
+		properties: ['--tw-gradient-position'],
+		values: ['var({var}, in oklab)'],
+		placeholders: { '{var}': 'gradient-position' }
+	},
+	{
+		layer: 'styles',
+		selector: 'grayscale',
+		properties: ['filter'],
+		values: ['grayscale(var({var}))'],
+		placeholders: { '{var}': 'grayscale' }
+	},
+	{
+		layer: 'styles',
+		selector: 'auto-cols',
+		properties: ['grid-auto-columns'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'auto-rows',
+		properties: ['grid-auto-rows'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'col',
+		properties: ['grid-column'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'col-span',
+		properties: ['grid-column'],
+		values: ['span var({var}) / span var({var})'],
+		placeholders: { '{var}': 'col-span' }
+	},
+	{
+		layer: 'styles',
+		selector: 'col-start',
+		properties: ['grid-column-start'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'col-end',
+		properties: ['grid-column-end'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'row',
+		properties: ['grid-row'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'row-span',
+		properties: ['grid-row'],
+		values: ['span var({var}) / span var({var})'],
+		placeholders: { '{var}': 'row-span' }
+	},
+	{
+		layer: 'styles',
+		selector: 'row-start',
+		properties: ['grid-row-start'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'row-end',
+		properties: ['grid-row-end'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'grid-cols',
+		properties: ['grid-template-columns'],
+		values: ['repeat(var({var}), minmax(0, 1fr))'],
+		placeholders: { '{var}': 'grid-cols' }
+	},
+	{
+		layer: 'styles',
+		selector: '[grid-cols]',
+		properties: ['grid-template-columns'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'grid-rows',
+		properties: ['grid-template-rows'],
+		values: ['repeat(var({var}), minmax(0, 1fr))'],
+		placeholders: { '{var}': 'grid-rows' }
+	},
+	{
+		layer: 'styles',
+		selector: '[grid-rows]',
+		properties: ['grid-template-rows'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'h',
+		properties: ['height'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'h' }
+	},
+	{
+		layer: 'styles',
+		selector: '[h]',
+		properties: ['height'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'hue-rotate',
+		properties: ['filter'],
+		values: ['hue-rotate(var({var}))'],
+		placeholders: { '{var}': 'hue-rotate' }
+	},
+	{
+		layer: 'styles',
+		selector: 'inset-ring',
+		properties: [
+			'--tw-inset-ring-width',
+			'--tw-inset-ring-color',
+			'--tw-inset-ring-shadow',
+			'box-shadow'
+		],
+		values: [
+			'1px',
+			'var({var}, currentColor)',
+			'inset 0 0 0 var(--tw-inset-ring-width) var(--tw-inset-ring-color)',
+			'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)'
+		],
+		placeholders: { '{var}': 'inset-ring' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'inset-ring/o',
+		properties: [
+			'--tw-inset-ring-width',
+			'--tw-inset-ring-color',
+			'--tw-inset-ring-shadow',
+			'box-shadow'
+		],
+		values: [
+			'1px',
+			'color-mix( in oklab, var({var}) var({var2}, 100%), transparent )',
+			'inset 0 0 0 var(--tw-inset-ring-width) var(--tw-inset-ring-color)',
+			'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)'
+		],
+		placeholders: { '{var}': 'inset-ring', '{var2}': 'inset-ring-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'inset-ring-w',
+		properties: ['--tw-inset-ring-width'],
+		values: ['var({var})'],
+		placeholders: { '{var}': 'inset-ring-w' }
+	},
+	{
+		layer: 'styles',
+		selector: 'inset',
+		properties: ['inset'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'inset' }
+	},
+	{
+		layer: 'styles',
+		selector: 'start',
+		properties: ['inset-inline-start'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'start' }
+	},
+	{
+		layer: 'styles',
+		selector: 'end',
+		properties: ['inset-inline-end'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'end' }
+	},
+	{
+		layer: 'styles',
+		selector: 'inset-x',
+		properties: ['inset-inline'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'inset-x' }
+	},
+	{
+		layer: 'styles',
+		selector: 'inset-y',
+		properties: ['inset-block'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'inset-y' }
+	},
+	{
+		layer: 'styles',
+		selector: '[inset]',
+		properties: ['inset'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: '[start]',
+		properties: ['inset-inline-start'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: '[end]',
+		properties: ['inset-inline-end'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: '[inset-x]',
+		properties: ['inset-inline'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: '[inset-y]',
+		properties: ['inset-block'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'invert',
+		properties: ['filter'],
+		values: ['invert(var({var}))'],
+		placeholders: { '{var}': 'invert' }
+	},
+	{
+		layer: 'styles',
+		selector: 'left',
+		properties: ['left'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'left' }
+	},
+	{
+		layer: 'styles',
+		selector: '[left]',
+		properties: ['left'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'tracking',
+		properties: ['letter-spacing'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'leading',
+		properties: ['line-height'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'leading' }
+	},
+	{
+		layer: 'styles',
+		selector: '[leading]',
+		properties: ['line-height'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'list-image',
+		properties: ['list-style-image'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'list',
+		properties: ['list-style-type'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'm',
+		properties: ['margin'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'm' }
+	},
+	{
+		layer: 'styles',
+		selector: '[m]',
+		properties: ['margin'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'mt',
+		properties: ['margin-top'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'mt' }
+	},
+	{
+		layer: 'styles',
+		selector: '[mt]',
+		properties: ['margin-top'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'mb',
+		properties: ['margin-bottom'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'mb' }
+	},
+	{
+		layer: 'styles',
+		selector: '[mb]',
+		properties: ['margin-bottom'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'ml',
+		properties: ['margin-left'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'ml' }
+	},
+	{
+		layer: 'styles',
+		selector: '[ml]',
+		properties: ['margin-left'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'mr',
+		properties: ['margin-right'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'mr' }
+	},
+	{
+		layer: 'styles',
+		selector: '[mr]',
+		properties: ['margin-right'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'ms',
+		properties: ['margin-inline-start'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'ms' }
+	},
+	{
+		layer: 'styles',
+		selector: '[ms]',
+		properties: ['margin-inline-start'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'me',
+		properties: ['margin-inline-end'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'me' }
+	},
+	{
+		layer: 'styles',
+		selector: '[me]',
+		properties: ['margin-inline-end'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'mx',
+		properties: ['margin-inline'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'mx' }
+	},
+	{
+		layer: 'styles',
+		selector: '[mx]',
+		properties: ['margin-inline'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'my',
+		properties: ['margin-block'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'my' }
+	},
+	{
+		layer: 'styles',
+		selector: '[my]',
+		properties: ['margin-block'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'mask-position',
+		properties: ['mask-position'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'mask-size',
+		properties: ['mask-size'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'max-h',
+		properties: ['max-height'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'max-h' }
+	},
+	{
+		layer: 'styles',
+		selector: '[max-h]',
+		properties: ['max-height'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'max-w',
+		properties: ['max-width'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'max-w' }
+	},
+	{
+		layer: 'styles',
+		selector: '[max-w]',
+		properties: ['max-width'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'min-h',
+		properties: ['min-height'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'min-h' }
+	},
+	{
+		layer: 'styles',
+		selector: '[min-h]',
+		properties: ['min-height'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'min-w',
+		properties: ['min-width'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'min-w' }
+	},
+	{
+		layer: 'styles',
+		selector: '[min-w]',
+		properties: ['min-width'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'object-position',
+		properties: ['object-position'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'opacity',
+		properties: ['opacity'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'order',
+		properties: ['order'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'outline',
+		properties: ['outline-color'],
+		dark: true,
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'outline/o',
+		properties: ['outline-color'],
+		values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
+		placeholders: { '{var}': 'outline', '{var2}': 'outline-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'outline-offset',
+		properties: ['outline-offset'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'outline-w',
+		properties: ['outline-width'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'p',
+		properties: ['padding'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'p' }
+	},
+	{
+		layer: 'styles',
+		selector: '[p]',
+		properties: ['padding'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'pt',
+		properties: ['padding-top'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'pt' }
+	},
+	{
+		layer: 'styles',
+		selector: 'pb',
+		properties: ['padding-bottom'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'pb' }
+	},
+	{
+		layer: 'styles',
+		selector: 'pl',
+		properties: ['padding-left'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'pl' }
+	},
+	{
+		layer: 'styles',
+		selector: 'pr',
+		properties: ['padding-right'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'pr' }
+	},
+	{
+		layer: 'styles',
+		selector: 'ps',
+		properties: ['padding-inline-start'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'ps' }
+	},
+	{
+		layer: 'styles',
+		selector: 'pe',
+		properties: ['padding-inline-end'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'pe' }
+	},
+	{
+		layer: 'styles',
+		selector: '[pt]',
+		properties: ['padding-top'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: '[pb]',
+		properties: ['padding-bottom'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: '[pl]',
+		properties: ['padding-left'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: '[pr]',
+		properties: ['padding-right'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: '[ps]',
+		properties: ['padding-inline-start'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: '[pe]',
+		properties: ['padding-inline-end'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'px',
+		properties: ['padding-inline'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'px' }
+	},
+	{
+		layer: 'styles',
+		selector: 'py',
+		properties: ['padding-block'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'py' }
+	},
+	{
+		layer: 'styles',
+		selector: '[px]',
+		properties: ['padding-inline'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: '[py]',
+		properties: ['padding-block'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'perspective-origin',
+		properties: ['perspective-origin'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'perspective',
+		properties: ['perspective'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'right',
+		properties: ['right'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'right' }
+	},
+	{
+		layer: 'styles',
+		selector: '[right]',
+		properties: ['right'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'ring',
+		properties: ['--tw-ring-color', '--tw-ring-shadow', 'box-shadow'],
+		values: [
+			'var({var}, currentColor)',
+			'var(--tw-ring-inset,) 0 0 0 calc(var(--tw-ring-width) + var(--tw-ring-offset-width)) var(--tw-ring-color)',
+			'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)'
+		],
+		placeholders: { '{var}': 'ring' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'ring/o',
+		properties: ['--tw-ring-width', '--tw-ring-color', '--tw-ring-shadow', 'box-shadow'],
+		values: [
+			'1px',
+			'color-mix(in oklab, var({var}) var({var2}, 100%), transparent)',
+			'var(--tw-ring-inset,) 0 0 0 calc(var(--tw-ring-width) + var(--tw-ring-offset-width)) var(--tw-ring-color)',
+			'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)'
+		],
+		placeholders: { '{var}': 'ring', '{var2}': 'ring-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'ring-w',
+		properties: ['--tw-ring-width'],
+		values: ['var({var})'],
+		placeholders: { '{var}': 'ring-w' }
+	},
+	{
+		layer: 'styles',
+		selector: 'rotate',
+		properties: ['rotate'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'rotate-x',
+		properties: ['--tw-rotate-x', 'transform'],
+		values: [
+			'rotateX(var({var}))',
+			'var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,)'
+		],
+		placeholders: { '{var}': 'rotate-x' }
+	},
+	{
+		layer: 'styles',
+		selector: 'rotate-y',
+		properties: ['--tw-rotate-y', 'transform'],
+		values: [
+			'rotateY(var({var}))',
+			'var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,)'
+		],
+		placeholders: { '{var}': 'rotate-y' }
+	},
+	{
+		layer: 'styles',
+		selector: 'rotate-z',
+		properties: ['--tw-rotate-z', 'transform'],
+		values: [
+			'rotateZ(var({var}))',
+			'var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,)'
+		],
+		placeholders: { '{var}': 'rotate-z' }
+	},
+	{
+		layer: 'styles',
+		selector: 'saturate',
+		properties: ['filter'],
+		values: ['saturate(var({var}))'],
+		placeholders: { '{var}': 'saturate' }
+	},
+	{
+		layer: 'styles',
+		selector: 'scale',
+		properties: ['--tw-scale-x', '--tw-scale-y', '--tw-scale-z', 'scale'],
+		values: ['var({var})', 'var({var})', 'var({var})', 'var(--tw-scale-x) var(--tw-scale-y)'],
+		placeholders: { '{var}': 'scale' }
+	},
+	{
+		layer: 'styles',
+		selector: 'scale-x',
+		properties: ['--tw-scale-x', 'scale'],
+		values: ['var({var})', 'var(--tw-scale-x) var(--tw-scale-y)'],
+		placeholders: { '{var}': 'scale-x' }
+	},
+	{
+		layer: 'styles',
+		selector: 'scale-y',
+		properties: ['--tw-scale-y', 'scale'],
+		values: ['var({var})', 'var(--tw-scale-x) var(--tw-scale-y)'],
+		placeholders: { '{var}': 'scale-y' }
+	},
+	{
+		layer: 'styles',
+		selector: 'scale-z',
+		properties: ['--tw-scale-z', 'scale'],
+		values: ['var({var})', 'var(--tw-scale-x) var(--tw-scale-y) var(--tw-scale-z)'],
+		placeholders: { '{var}': 'scale-z' }
+	},
+	{
+		layer: 'styles',
+		selector: 'scroll-m',
+		properties: ['scroll-margin'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'scroll-m' }
+	},
+	{
+		layer: 'styles',
+		selector: '[scroll-m]',
+		properties: ['scroll-margin'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'scroll-mt',
+		properties: ['scroll-margin-top'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'scroll-mt' }
+	},
+	{
+		layer: 'styles',
+		selector: '[scroll-mt]',
+		properties: ['scroll-margin-top'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'scroll-mb',
+		properties: ['scroll-margin-bottom'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'scroll-mb' }
+	},
+	{
+		layer: 'styles',
+		selector: '[scroll-mb]',
+		properties: ['scroll-margin-bottom'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'scroll-ml',
+		properties: ['scroll-margin-left'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'scroll-ml' }
+	},
+	{
+		layer: 'styles',
+		selector: '[scroll-ml]',
+		properties: ['scroll-margin-left'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'scroll-mr',
+		properties: ['scroll-margin-right'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'scroll-mr' }
+	},
+	{
+		layer: 'styles',
+		selector: '[scroll-mr]',
+		properties: ['scroll-margin-right'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'scroll-ms',
+		properties: ['scroll-margin-inline-start'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'scroll-ms' }
+	},
+	{
+		layer: 'styles',
+		selector: '[scroll-ms]',
+		properties: ['scroll-margin-inline-start'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'scroll-me',
+		properties: ['scroll-margin-inline-end'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'scroll-me' }
+	},
+	{
+		layer: 'styles',
+		selector: '[scroll-me]',
+		properties: ['scroll-margin-inline-end'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'scroll-mx',
+		properties: ['scroll-margin-inline'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'scroll-mx' }
+	},
+	{
+		layer: 'styles',
+		selector: '[scroll-mx]',
+		properties: ['scroll-margin-inline'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'scroll-my',
+		properties: ['scroll-margin-block'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'scroll-my' }
+	},
+	{
+		layer: 'styles',
+		selector: '[scroll-my]',
+		properties: ['scroll-margin-block'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'scroll-p',
+		properties: ['scroll-padding'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'scroll-p' }
+	},
+	{
+		layer: 'styles',
+		selector: '[scroll-p]',
+		properties: ['scroll-padding'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'scroll-pt',
+		properties: ['scroll-padding-top'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'scroll-pt' }
+	},
+	{
+		layer: 'styles',
+		selector: 'scroll-pb',
+		properties: ['scroll-padding-bottom'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'scroll-pb' }
+	},
+	{
+		layer: 'styles',
+		selector: 'scroll-pl',
+		properties: ['scroll-padding-left'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'scroll-pl' }
+	},
+	{
+		layer: 'styles',
+		selector: 'scroll-pr',
+		properties: ['scroll-padding-right'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'scroll-pr' }
+	},
+	{
+		layer: 'styles',
+		selector: 'scroll-ps',
+		properties: ['scroll-padding-inline-start'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'scroll-ps' }
+	},
+	{
+		layer: 'styles',
+		selector: 'scroll-pe',
+		properties: ['scroll-padding-inline-end'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'scroll-pe' }
+	},
+	{
+		layer: 'styles',
+		selector: '[scroll-pt]',
+		properties: ['scroll-padding-top'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: '[scroll-pb]',
+		properties: ['scroll-padding-bottom'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: '[scroll-pl]',
+		properties: ['scroll-padding-left'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: '[scroll-pr]',
+		properties: ['scroll-padding-right'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: '[scroll-ps]',
+		properties: ['scroll-padding-inline-start'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: '[scroll-pe]',
+		properties: ['scroll-padding-inline-end'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'scroll-px',
+		properties: ['scroll-padding-inline'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'scroll-px' }
+	},
+	{
+		layer: 'styles',
+		selector: 'scroll-py',
+		properties: ['scroll-padding-block'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'scroll-py' }
+	},
+	{
+		layer: 'styles',
+		selector: '[scroll-px]',
+		properties: ['scroll-padding-inline'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: '[scroll-py]',
+		properties: ['scroll-padding-block'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'sepia',
+		properties: ['filter'],
+		values: ['sepia(var({var}))'],
+		placeholders: { '{var}': 'sepia' }
+	},
+	{
+		layer: 'styles',
+		selector: 'size',
+		properties: ['width', 'height'],
+		values: ['calc(var(--spacing) * var({var}))', 'calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'size' }
+	},
+	{
+		layer: 'styles',
+		selector: '[size]',
+		properties: ['width', 'height'],
+		values: ['var({var})', 'var({var})'],
+		placeholders: { '{var}': 'size' }
+	},
+	{
+		layer: 'styles',
+		selector: 'skew',
+		properties: ['--tw-skew-x', '--tw-skew-y', 'transform'],
+		values: [
+			'skewX(var({var}))',
+			'skewY(var({var}))',
+			'var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,)'
+		],
+		placeholders: { '{var}': 'skew' }
+	},
+	{
+		layer: 'styles',
+		selector: 'skew-x',
+		properties: ['--tw-skew-x', 'transform'],
+		values: [
+			'skewX(var({var}))',
+			'var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,)'
+		],
+		placeholders: { '{var}': 'skew-x' }
+	},
+	{
+		layer: 'styles',
+		selector: 'skew-y',
+		properties: ['--tw-skew-y', 'transform'],
+		values: [
+			'skewY(var({var}))',
+			'var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,)'
+		],
+		placeholders: { '{var}': 'skew-y' }
+	},
+	{
+		layer: 'styles',
+		selector: 'stroke-w',
+		properties: ['stroke-width'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'stroke',
+		properties: ['stroke'],
+		dark: true,
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'stroke/o',
+		properties: ['stroke'],
+		values: ['color-mix(in oklab, var({var}) var({var2}, 100%), transparent)'],
+		placeholders: { '{var}': 'stroke', '{var2}': 'stroke-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'decoration',
+		properties: ['text-decoration-color'],
+		dark: true,
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'decoration/o',
+		properties: ['text-decoration-color'],
+		values: ['color-mix( in oklab, var({var}) var({var2}, 100%), transparent )'],
+		placeholders: { '{var}': 'decoration', '{var2}': 'decoration-o' },
+		dark: true
+	},
+	{
+		layer: 'styles',
+		selector: 'decoration-thickness',
+		properties: ['text-decoration-thickness'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'indent',
+		properties: ['text-indent'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'indent' }
+	},
+	{
+		layer: 'styles',
+		selector: '[indent]',
+		properties: ['text-indent'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'underline-offset',
+		properties: ['text-underline-offset'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'top',
+		properties: ['top'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'top' }
+	},
+	{
+		layer: 'styles',
+		selector: '[top]',
+		properties: ['top'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'origin',
+		properties: ['transform-origin'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'transform',
+		properties: ['transform'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'delay',
+		properties: ['transition-delay'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'transition',
+		properties: ['transition-property', 'transition-timing-function', 'transition-duration'],
+		values: [
+			'var({var}, var(--default-transition-property))',
+			'var(--default-transition-timing-function)',
+			'var(--default-transition-duration)'
+		],
+		placeholders: { '{var}': 'transition' }
+	},
+	{
+		layer: 'styles',
+		selector: 'duration',
+		properties: ['transition-duration'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'ease',
+		properties: ['transition-timing-function'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'translate',
+		properties: ['--tw-translate-x', '--tw-translate-y', 'translate'],
+		values: [
+			'calc(var(--spacing) * var({var}))',
+			'calc(var(--spacing) * var({var}))',
+			'var(--tw-translate-x) var(--tw-translate-y)'
+		],
+		placeholders: { '{var}': 'translate' }
+	},
+	{
+		layer: 'styles',
+		selector: '[translate]',
+		properties: ['--tw-translate-x', '--tw-translate-y', 'translate'],
+		values: ['var({var})', 'var({var})', 'var(--tw-translate-x) var(--tw-translate-y)'],
+		placeholders: { '{var}': 'translate' }
+	},
+	{
+		layer: 'styles',
+		selector: 'translate-x',
+		properties: ['--tw-translate-x', 'translate'],
+		values: ['calc(var(--spacing) * var({var}))', 'var(--tw-translate-x) var(--tw-translate-y)'],
+		placeholders: { '{var}': 'translate-x' }
+	},
+	{
+		layer: 'styles',
+		selector: '[translate-x]',
+		properties: ['--tw-translate-x', 'translate'],
+		values: ['var({var})', 'var(--tw-translate-x) var(--tw-translate-y)'],
+		placeholders: { '{var}': 'translate-x' }
+	},
+	{
+		layer: 'styles',
+		selector: 'translate-y',
+		properties: ['--tw-translate-y', 'translate'],
+		values: ['calc(var(--spacing) * var({var}))', 'var(--tw-translate-x) var(--tw-translate-y)'],
+		placeholders: { '{var}': 'translate-y' }
+	},
+	{
+		layer: 'styles',
+		selector: '[translate-y]',
+		properties: ['--tw-translate-y', 'translate'],
+		values: ['var({var})', 'var(--tw-translate-x) var(--tw-translate-y)'],
+		placeholders: { '{var}': 'translate-y' }
+	},
+	{
+		layer: 'styles',
+		selector: 'translate-z',
+		properties: ['--tw-translate-z', 'translate'],
+		values: [
+			'calc(var(--spacing) * var({var}))',
+			'var(--tw-translate-x) var(--tw-translate-y) var(--tw-translate-z)'
+		],
+		placeholders: { '{var}': 'translate-z' }
+	},
+	{
+		layer: 'styles',
+		selector: '[translate-z]',
+		properties: ['--tw-translate-z', 'translate'],
+		values: ['var({var})', 'var(--tw-translate-x) var(--tw-translate-y) var(--tw-translate-z)'],
+		placeholders: { '{var}': 'translate-z' }
+	},
+	{
+		layer: 'styles',
+		selector: 'align',
+		properties: ['vertical-align'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'w',
+		properties: ['width'],
+		values: ['calc(var(--spacing) * var({var}))'],
+		placeholders: { '{var}': 'w' }
+	},
+	{
+		layer: 'styles',
+		selector: '[w]',
+		properties: ['width'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'will-change',
+		properties: ['will-change'],
+		arbitrary: true
+	},
+	{
+		layer: 'styles',
+		selector: 'z',
+		properties: ['z-index'],
+		arbitrary: true
+	},
+	{
+		layer: 'utilities',
+		selector: 'backdrop-filter-none',
+		properties: ['backdrop-filter'],
+		values: ['none']
+	},
+	{
+		layer: 'utilities',
+		selector: 'bg-image-none',
+		properties: ['background-image'],
+		values: ['none']
+	},
+	{
+		layer: 'utilities',
+		selector: 'shadow-none',
+		properties: ['box-shadow'],
+		values: ['0 0 #0000']
+	},
+	{
+		layer: 'utilities',
+		selector: 'columns-auto',
+		properties: ['columns'],
+		values: ['auto']
+	},
+	{
+		layer: 'utilities',
+		selector: 'content-none',
+		properties: ['content'],
+		values: ['none']
+	},
+	{
+		layer: 'utilities',
+		selector: 'normal-nums',
+		properties: ['font-variant-numeric'],
+		values: ['normal']
+	},
+	{
+		layer: 'utilities',
+		selector: 'col-start-auto',
+		properties: ['grid-column-start'],
+		values: ['auto']
+	},
+	{
+		layer: 'utilities',
+		selector: 'col-end-auto',
+		properties: ['grid-column-end'],
+		values: ['auto']
+	},
+	{
+		layer: 'utilities',
+		selector: 'row-start-auto',
+		properties: ['grid-row-start'],
+		values: ['auto']
+	},
+	{
+		layer: 'utilities',
+		selector: 'row-end-auto',
+		properties: ['grid-row-end'],
+		values: ['auto']
+	},
+	{
+		layer: 'utilities',
+		selector: 'inset-x-full',
+		properties: ['inset-inline'],
+		values: ['100%']
+	},
+	{
+		layer: 'utilities',
+		selector: 'inset-y-full',
+		properties: ['inset-block'],
+		values: ['100%']
+	},
+	{
+		layer: 'utilities',
+		selector: 'start-full',
+		properties: ['inset-inline-start'],
+		values: ['100%']
+	},
+	{
+		layer: 'utilities',
+		selector: 'end-full',
+		properties: ['inset-inline-end'],
+		values: ['100%']
+	},
+	{
+		layer: 'utilities',
+		selector: 'list-image-none',
+		properties: ['list-style-image'],
+		values: ['none']
+	},
+	{
+		layer: 'utilities',
+		selector: 'm-auto',
+		properties: ['margin'],
+		values: ['auto']
+	},
+	{
+		layer: 'utilities',
+		selector: 'mt-auto',
+		properties: ['margin-top'],
+		values: ['auto']
+	},
+	{
+		layer: 'utilities',
+		selector: 'mb-auto',
+		properties: ['margin-bottom'],
+		values: ['auto']
+	},
+	{
+		layer: 'utilities',
+		selector: 'ml-auto',
+		properties: ['margin-left'],
+		values: ['auto']
+	},
+	{
+		layer: 'utilities',
+		selector: 'mr-auto',
+		properties: ['margin-right'],
+		values: ['auto']
+	},
+	{
+		layer: 'utilities',
+		selector: 'ms-auto',
+		properties: ['margin-inline-start'],
+		values: ['auto']
+	},
+	{
+		layer: 'utilities',
+		selector: 'me-auto',
+		properties: ['margin-inline-end'],
+		values: ['auto']
+	},
+	{
+		layer: 'utilities',
+		selector: 'mx-auto',
+		properties: ['margin-inline'],
+		values: ['auto']
+	},
+	{
+		layer: 'utilities',
+		selector: 'my-auto',
+		properties: ['margin-block'],
+		values: ['auto']
+	},
+	{
+		layer: 'utilities',
+		selector: 'outline-none',
+		properties: ['outline'],
+		values: ['none']
+	},
+	{
+		layer: 'utilities',
+		selector: 'outline-hidden',
+		properties: ['outline', 'outline-offset'],
+		values: ['2px solid transparent', '2px']
+	},
+	{
+		layer: 'utilities',
+		selector: 'break-words',
+		properties: ['overflow-wrap'],
+		values: ['break-word']
+	},
+	{
+		layer: 'utilities',
+		selector: 'perspective-none',
+		properties: ['perspective'],
+		values: ['none']
+	},
+	{
+		layer: 'utilities',
+		selector: 'snap-none',
+		properties: ['scroll-snap-type'],
+		values: ['none']
+	},
+	{
+		layer: 'utilities',
+		selector: 'truncate',
+		properties: ['overflow', 'text-overflow', 'white-space'],
+		values: ['hidden', 'ellipsis', 'nowrap']
+	},
+	{
+		layer: 'utilities',
+		selector: 'underline-offset-auto',
+		properties: ['text-underline-offset'],
+		values: ['auto']
+	},
+	{
+		layer: 'utilities',
+		selector: 'duration-initial',
+		properties: ['transition-duration'],
+		values: ['initial']
+	},
+	{
+		layer: 'utilities',
+		selector: 'transition-none',
+		properties: ['transition-property'],
+		values: ['none']
+	},
+	{
+		layer: 'utilities',
+		selector: 'translate-none',
+		properties: ['translate'],
+		values: ['none']
+	},
+	{
+		layer: 'utilities',
+		selector: 'break-normal',
+		properties: ['overflow-wrap', 'word-break'],
+		values: ['normal', 'normal']
+	},
+	{
+		layer: 'utilities',
+		selector: 'z-auto',
+		properties: ['z-index'],
+		values: ['auto']
+	},
+	{
+		layer: 'components',
+		selector: 'aspect-video',
+		properties: ['aspect-ratio'],
+		values: ['var(--aspect-video)']
+	},
+	{
+		layer: 'components',
+		selector: 'ordinal',
+		properties: ['--tw-ordinal', 'font-variant-numeric'],
+		values: [
+			'ordinal',
+			'var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)'
+		]
+	},
+	{
+		layer: 'components',
+		selector: 'slashed-zero',
+		properties: ['--tw-slashed-zero', 'font-variant-numeric'],
+		values: [
+			'slashed-zero',
+			'var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,)'
+		]
+	},
+	{
+		layer: 'components',
+		selector: 'scale-3d',
+		properties: ['scale'],
+		values: ['var(--tw-scale-x) var(--tw-scale-y) var(--tw-scale-z)']
+	}
 ];
 
 function expand(families: Family[]): Rule[] {
-  return families.flatMap(([layer, prefix, properties, entries]) =>
-    entries.map((e): Rule => {
-      const [suffix, ...rest] = Array.isArray(e) ? e : [e, e];
-      return {
-        ...(layer ? { layer } : {}),
-        selector: prefix + suffix,
-        properties: [...properties],
-        values: rest.length === 1 && properties.length > 1 ? properties.map(() => rest[0]) : rest,
-      };
-    }),
-  );
+	return families.flatMap(([layer, prefix, properties, entries]) =>
+		entries.map((e): Rule => {
+			const [suffix, ...rest] = Array.isArray(e) ? e : [e, e];
+			return {
+				...(layer ? { layer } : {}),
+				selector: prefix + suffix,
+				properties: [...properties],
+				values: rest.length === 1 && properties.length > 1 ? properties.map(() => rest[0]) : rest
+			};
+		})
+	);
 }
 
-export const RULES: Rule[] = [... (LITERAL_RULES as Rule[]), ...expand(FAMILIES)];
+export const RULES: Rule[] = [...(LITERAL_RULES as Rule[]), ...expand(FAMILIES)];
 
 // 1. Derive `cc` from utilities and append hardcoded exceptions
 export const CC: Set<string> = new Set([
-  ...RULES.filter(rule => rule.layer === 'utilities').map(rule => rule.selector),
-  'divide-x-reverse',
-  'divide-y-reverse',
+	...RULES.filter((rule) => rule.layer === 'utilities').map((rule) => rule.selector),
+	'divide-x-reverse',
+	'divide-y-reverse'
 ]);
 
 // 2. Derive `vd` from styles and append hardcoded exceptions
 export const VD: Set<string> = new Set([
-  ...RULES
-    .filter(rule => rule.layer === 'styles')
-    .flatMap(rule => (rule.dark ? [rule.selector, `dark:${rule.selector}`] : [rule.selector])),
-  'divide-x',
-  '[divide-x]',
-  'divide-y',
-  '[divide-y]',
-  'space-x',
-  '[space-x]',
-  'space-y',
-  '[space-y]',
+	...RULES.filter((rule) => rule.layer === 'styles').flatMap((rule) =>
+		rule.dark ? [rule.selector, `dark:${rule.selector}`] : [rule.selector]
+	),
+	'divide-x',
+	'[divide-x]',
+	'divide-y',
+	'[divide-y]',
+	'space-x',
+	'[space-x]',
+	'space-y',
+	'[space-y]'
 ]);
 
 // 3. Derive `scaled` from rules where the first value matches the spacing calculation pattern
 export const SCALED: Set<string> = new Set(
-  RULES
-    .filter(
-      rule => Array.isArray(rule.values) && rule.values[0] === 'calc(var(--spacing) * var({var}))',
-    )
-    .map(rule => rule.selector),
+	RULES.filter(
+		(rule) => Array.isArray(rule.values) && rule.values[0] === 'calc(var(--spacing) * var({var}))'
+	).map((rule) => rule.selector)
 );

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { resolve } from '$app/paths';
 	import MonacoEditor from '#lib/components/MonacoEditor.svelte';
+	import { resolve } from '$app/paths';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -95,7 +95,9 @@
 	// Debounce preview updates & persist code changes
 	$effect(() => {
 		const currentCode = code;
-		if (!initialized) return;
+		if (!initialized) {
+			return;
+		}
 
 		const timer = setTimeout(() => {
 			previewCode = currentCode;
@@ -111,7 +113,9 @@
 
 	// Persist layout settings
 	$effect(() => {
-		if (!initialized) return;
+		if (!initialized) {
+			return;
+		}
 		const layoutState = {
 			splitDirection,
 			previewOnly,
@@ -143,8 +147,12 @@
 			const rect = previewCanvasRef.getBoundingClientRect();
 			const maxW = Math.max(MIN_RESP_WIDTH, Math.floor(rect.width - 64));
 			const maxH = Math.max(MIN_RESP_HEIGHT, Math.floor(rect.height - 80));
-			if (respWidth > maxW) respWidth = maxW;
-			if (respHeight > maxH) respHeight = maxH;
+			if (respWidth > maxW) {
+				respWidth = maxW;
+			}
+			if (respHeight > maxH) {
+				respHeight = maxH;
+			}
 		}
 	}
 
@@ -185,7 +193,9 @@
 	}
 
 	async function formatCode() {
-		if (formatFeedback === 'formatting') return;
+		if (formatFeedback === 'formatting') {
+			return;
+		}
 		formatFeedback = 'formatting';
 
 		try {
@@ -208,13 +218,17 @@
 			code = formatted;
 			formatFeedback = 'formatted';
 			setTimeout(() => {
-				if (formatFeedback === 'formatted') formatFeedback = 'idle';
+				if (formatFeedback === 'formatted') {
+					formatFeedback = 'idle';
+				}
 			}, 1800);
 		} catch (err) {
 			console.error('Prettier formatting error:', err);
 			formatFeedback = 'error';
 			setTimeout(() => {
-				if (formatFeedback === 'error') formatFeedback = 'idle';
+				if (formatFeedback === 'error') {
+					formatFeedback = 'idle';
+				}
 			}, 2200);
 		}
 	}
@@ -225,7 +239,9 @@
 		isDraggingSplit = true;
 
 		const onPointerMove = (e: PointerEvent) => {
-			if (!workspaceRef) return;
+			if (!workspaceRef) {
+				return;
+			}
 			const rect = workspaceRef.getBoundingClientRect();
 			if (splitDirection === 'vertical') {
 				const rawPct = ((e.clientX - rect.left) / rect.width) * 100;
@@ -440,11 +456,7 @@
 			>
 				<span>Convert</span>
 			</a>
-			<a
-				href={resolve('/(app)/rewrite')}
-				class="nav-link-btn"
-				title="Open 0build Rewriter"
-			>
+			<a href={resolve('/(app)/rewrite')} class="nav-link-btn" title="Open 0build Rewriter">
 				<span>Rewrite</span>
 			</a>
 

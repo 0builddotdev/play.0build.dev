@@ -46,7 +46,9 @@
 				import('monaco-editor/language/typescript/ts.worker?worker')
 			]);
 
-			if (disposed || !containerRef) return;
+			if (disposed || !containerRef) {
+				return;
+			}
 
 			self.MonacoEnvironment = {
 				getWorker(_: unknown, label: string) {

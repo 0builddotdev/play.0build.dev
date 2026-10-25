@@ -19,9 +19,9 @@ This directory serves as the core definitions dictionary for the **0build** fami
 
 The base design system configuration. It includes the registry of static design tokens such as:
 
-* Colors and intensities
-* Responsive breakpoints
-* Other foundational theme variables
+- Colors and intensities
+- Responsive breakpoints
+- Other foundational theme variables
 
 ### `rules.ts`
 
@@ -29,6 +29,6 @@ The CSS generation engine's blueprint. This file exports a massive configuration
 
 It also exports two derived sets used for quick validation and matching:
 
-* `CC` **(Constant Classes):** Extracted from the `utilities` layer (e.g., static classes like `content-center`).
-* `VD` **(Value-Driven Classes):** Extracted from the `styles` layer, automatically mapped with their `dark:` variants.
-* `SCALED` **(Scaled Classes):** Extracted from `RULES` where the first value matches the spacing calculation pattern.
+- `CC` **(Constant Classes):** Extracted from the `utilities` layer (e.g., static classes like `content-center`).
+- `VD` **(Value-Driven Classes):** Extracted from the `styles` layer, automatically mapped with their `dark:` variants.
+- `SCALED` **(Scaled Classes):** Extracted from `RULES` where the first value matches the spacing calculation pattern.
